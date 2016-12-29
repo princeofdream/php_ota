@@ -1,0 +1,12 @@
+2016-08-25 6:46:04   Client:10.173.235.120  <br><br><br>DELETE SUCESS---------------------
+2016-08-25 6:46:04   Client:10.173.235.120  /var/www/html/fota/version/OEM_hgsoft/PRO_ibox/REG_zh$cn/OPE_android/111/MT6735_Android_scatter.txt
+2016-08-25 6:46:04   Client:10.173.235.120  <br><br><br>DELETE SUCESS---------------------
+2016-08-29 4:45:01   Client:10.173.235.76  <br><br><br>DELETE SUCESS---------------------
+2016-08-29 4:45:01   Client:10.173.235.76  /var/www/html/fota/version/OEM_hgsoft/PRO_ibox/REG_zh$cn/OPE_android/v0.8.4/android-info.txt
+2016-08-29 4:45:01   Client:10.173.235.76  <br><br><br>DELETE SUCESS---------------------
+2016-08-29 4:45:01   Client:10.173.235.76  <br><br><br>DELETE SUCESS---------------------
+2016-08-29 4:45:01   Client:10.173.235.76  /var/www/html/fota/version/OEM_hgsoft/PRO_ibox/REG_zh$cn/OPE_android/v0.8.5/preloader_cb04_6735_35u.bin
+2016-08-29 4:45:01   Client:10.173.235.76  <br><br><br>DELETE SUCESS---------------------
+2016-08-29 4:45:01   Client:10.173.235.76  <br><br><br>DELETE SUCESS---------------------
+2016-08-29 4:45:01   Client:10.173.235.76  /var/www/html/fota/version/OEM_hgsoft/PRO_ibox/REG_zh$cn/OPE_android/v0.8.4/1472109047preloader_cb04_6735_35u.bin
+2016-08-29 4:45:01   Client:10.173.235.76  <br><br><br>DELETE SUCESS---------------------
