@@ -41,21 +41,29 @@ li {list-style:none;}
 
 
 </br>
-<?php   
-//Accpet the http client request and generate response content.
-//As a demo, this function just send "PHP HTTP Server" to client.
-
-
-
+<?php
 //echo $_POST["m_ver"];
 //echo $_POST["m_ot_time"];
 
+function get_db_server()
+{
+	$db_server = "10.173.201.228:3306";
+	return $db_server;
+}
 
-$db_server = "10.173.201.228:3306";
-$db_user = "fota";
-$db_pwd = "fota1@#";
+function get_db_user()
+{
+	$db_user = "fota";
+	return $db_user;
+}
+function get_db_pwd()
+{
+	$db_pwd = "fota1@#";
+	return $db_pwd;
+}
 /*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/
 
+$db_mdb;
 
 
 function logd($str)
@@ -67,36 +75,41 @@ function logd($str)
     }
 }
 
-function is_cpuid_exist($server,$user,$pwd,$display)
+function connect_to_mysql_server($db_server,$db_user,$db_pwd)
 {
     $result=0;
-	$mdb = mysql_connect($server,$user,$pwd);
-	if(!$mdb)
+	$db_mdb = mysql_connect($db_server,$db_user,$db_pwd);
+	if(!$db_mdb)
 	{
 		echo "connect db Fail!";
-		// die('Could not connect: ' . mysql_error());
 	}
 	else
 	{
 		logd("connect sucess");
 	}
-
-	mysql_select_db("fota", $mdb);
-
-    $query = "SELECT cpuid FROM license_datasheet where cpuid='".$_GET['cpuid']."'";
-    $t_result = mysql_query($query);
-    while($row_result = mysql_fetch_array($t_result))
-    {
-        $result=1;
-        logd($row_result['cpuid'] . " --> " . $row_result['wifi_mac']
-                . " --> " . $row_result['board'] . " --> " . $row_result['platform']);
-    }
-	return $result;
+	return $db_mdb;
 }
 
-function db_insert($server,$user,$pwd,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
+function select_database($db_mdb,$sel_db)
 {
-	$mdb = mysql_connect($server,$user,$pwd);
+	$result  = mysql_select_db($sel_db, $db_mdb);
+}
+
+function run_database_command($query)
+{
+    // $query = "SELECT cpuid FROM license_datasheet where cpuid='".$_GET['cpuid']."'";
+    $result = mysql_query($query);
+}
+
+function disconnect_from_mysql_server($db_mdb)
+{
+	mysql_close($db_mdb);
+}
+
+
+function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
+{
+	// $mdb = mysql_connect($server,$user,$pwd);
 	if(!$mdb)
 	{
 		logd("connect db Fail!");
@@ -110,64 +123,20 @@ function db_insert($server,$user,$pwd,$get_ver,$get_id,$get_sn,$get_remoteip_dec
 
 	$ret = mysql_select_db("fota", $mdb);
 
-	// $pre_str = "INSERT INTO version VALUES " ;//+ $str;
-	// $pre_str = "INSERT INTO `fota`(`date`, `version`, `sn`, `fp`) VALUES ( curdate(),'111','222','333') " ;//+ $str;
-	$insert_str = sprintf("INSERT INTO `fota`(`date`, `timestamp`, `sn`, `version`, `fp`,`remoteip`) VALUES (curdate(),now(),'%s','%s','%s','%s')",$get_sn,$get_ver,$get_id,$get_remoteip_dec);
+	$insert_str = sprintf("INSERT INTO `fota`(`timestamp`, `sn`, `version`, `fp`,`remoteip`) VALUES (now(),'%s','%s','%s','%s')",$get_sn,$get_ver,$get_id,$get_remoteip_dec);
 	$result = mysql_query($insert_str);
-	logd("------------>$insert_str<--<:$ret:$result>--------");
+	logd("------------>$insert_str<--<$ret:$result>--------");
 
-	mysql_close($mdb);
+	// mysql_close($mdb);
 	return 1;
 }
 
-/*
-function read_fota_db($server,$user,$pwd,$display)
-{
-	$mdb = mysql_connect($server,$user,$pwd);
-	if(!$mdb)
-	{
-		echo "connect db Fail!";
-		die('Could not connect: ' . mysql_error());
-	}
-	else
-	{
-		//echo "connect db OK!";
-	}
-	
-	mysql_select_db("fota", $mdb);
 
-	//mysql_query("INSERT INTO license_datasheet (cpuid, wifi_mac, board, platform) 
-		//VALUES ('cpuid_005', 'wifi_223345', 'TVBOX', 'NS115')");
-
-	$sql = "SELECT * FROM `license_datasheet`";
-	$result = mysql_query($sql,$mdb);
-
-
-	if($display === 1)
-	{
-		echo 'cpuid' . " --> " . 'wifi_mac' . " --> " . 'board' . " --> " . 'platform';
-		logd("");
-	}
-	$ret = "NULL";
-	while($row = mysql_fetch_array($result))
-	{
-		if($display === 1)
-		{
-			echo $row['cpuid'] . " --> " . $row['wifi_mac'] . " --> " . $row['board'] . " --> " . $row['platform'];
-		}
-		$ret = $row['cpuid'];
-	}
-
-	mysql_close($mdb);
-	return $ret;
-}
- */
-
-
-function show_data($server,$user,$pwd)
+// function show_data($server,$user,$pwd)
+function show_data($mdb)
 {
 	$display = 1;
-	$mdb = mysql_connect($server,$user,$pwd);
+	// $mdb = mysql_connect($server,$user,$pwd);
 	if(!$mdb)
 	{
 		logd("Entering show data...connect db Fail!");
@@ -185,7 +154,6 @@ function show_data($server,$user,$pwd)
 	if($display === 1)
 	{
 		echo "<table border='1'>";
-		//echo '<tr><td>ver' . " \t\t--> " . '</td><td>date' .'</td></tr>';
 	}
 	$ret = "NULL";
 	while($row = mysql_fetch_array($result))
@@ -196,19 +164,16 @@ function show_data($server,$user,$pwd)
 		}
 	}
 
-	// $sql = sprintf("DELETE FROM `vister_info` WHERE `vis_ver` = \"%s\"","XXXXXX");
-	// $result = mysql_query($sql,$mdb);
-	mysql_close($mdb);
+	// mysql_close($mdb);
 	return $ret;
 }
 
 function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_dt,$get_tm,$get_ver)
 {
-	$mdb = mysql_connect($server,$user,$pwd);
+	// $mdb = mysql_connect($server,$user,$pwd);
 	if(!$mdb)
 	{
 		echo "connect db Fail!";
-		// die('Could not connect: ' . mysql_error());
 	}
 	else
 	{
@@ -222,8 +187,6 @@ function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_d
 
 	mysql_select_db("fota", $mdb);
 
-	// check if vis_ver and date, if no result do insert
-	// $sql = sprintf("SELECT * FROM `fota` WHERE `vis_ver` = \"%s\" AND `vis_dt` = \"%s\"",$check_ver,$get_dt);
 	$sql = sprintf("SELECT * FROM `fota`");
 	$result = mysql_query($sql,$mdb);
 	$row = mysql_fetch_array($result);
@@ -262,6 +225,7 @@ function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_d
 		//logd("update $get_ip_dec");
 	//}
 
+	// mysql_close($mdb);
 
 	/* show data */
 	show_data($server,$user,$pwd);
@@ -352,17 +316,172 @@ function get_version_detail($ver_str)
 }
 
 
+
+function update_server_main( $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver , $current_dt ,$current_tm)
+{
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?ver=HGSoft-v19.9.1&sn=440011600000075&id=1482167729 <<----------");
+	logd();
+	logd();
+	logd("Debug --------->");
+
+	/* tranform ip to dec */
+	$get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
+
+	logd("host  : $get_serv:$get_port");
+	logd("remote ip :$get_remoteip($get_remoteip_dec)");
+	logd("version  : $get_ver");
+	logd("time  : $current_dt");
+	logd("id  : $get_id");
+
+	$db_server = get_db_server();
+	$db_user = get_db_user();
+	$db_pwd = get_db_pwd();
+	logd("DB server : $db_server");
+
+	$mdb = connect_to_mysql_server($db_server,$db_user,$db_pwd);
+
+
+	if( strlen($get_ver) != 0 )
+	{
+		logd("----------------------------Insert info into DB------------------------------------------");
+		db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec);
+		logd("----------------------------Read Info from DB------------------------------------------");
+		// $ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,$current_dt,$current_tm,$get_id);
+		$ret = show_data($mdb);
+		logd("----------------------------End of DB action------------------------------------------");
+		// $forward_url = sprintf("http://10.173.235.228/fota/index.php?id=%s",$get_ver);
+		// header("Location: $forward_url");
+	}
+	// $ver_pos = stripos($get_ver,"-")
+
+	$version_prefix = "HGSoft-v";
+	$version_offset = 0;
+
+	$ret = substr_compare($get_ver,$version_prefix , $version_offset ,strlen($version_prefix));
+	if ( $ret == 0 )
+	{
+		$usr_ver_info = strrchr($get_ver,'v');
+		$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
+		// logd("get user version: $usr_ver");
+
+		$get_usr_ver = get_version_detail($usr_ver);
+		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] ");
+
+		// **************** Get local list and sort ********************* //
+		$ver_list = dir_list('./version/');
+		$arrlength=count($ver_list);
+		sort($ver_list);
+		// **************** Get local list and sort ********************* //
+
+
+		logd("get dir list :");
+		$ret = 0;
+		for ($i0=$arrlength-1; $i0 >= 0; $i0--)
+		{
+			$get_local_ver_info = strrchr($ver_list[$i0], 'v');
+			$local_ver_info = substr( $get_local_ver_info,1);
+			logd(" -- get local version --> $ver_list[$i0] <----> $local_ver_info <--");
+
+
+			$local_ver = get_version_detail($local_ver_info);
+			/*
+			if( $local_ver[0] > $get_usr_ver[0] )
+			{
+				$get_usr_ver = $local_ver;
+			}
+			else if( $local_ver[0] == $get_usr_ver[0] )
+			{
+				if( $local_ver[1] > $get_usr_ver[1] )
+				{
+					$get_usr_ver = $local_ver;
+				}
+				else if( $local_ver[1] == $get_usr_ver[1] )
+				{
+					if( $local_ver[2] > $get_usr_ver[2] )
+					{
+						$get_usr_ver = $local_ver;
+					}
+				}
+			}
+			*/
+			$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+			$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+			logd("look for file: $file_path .");
+			if (file_exists($file_path))
+			{
+				if( file_exists( $md5_file_path ) )
+				{
+					$fp = fopen( $md5_file_path , 'r');
+					$get_md5_from_file = fread($fp, 1024);
+					logd("get md5 from file: $get_md5_from_file");
+					fclose($fp);
+					$file_md5 = $get_md5_from_file;
+				}
+				else
+				{
+					$file_md5 = md5_file($file_path);
+					$fp = fopen( $md5_file_path ,'w');
+					fwrite($fp,"$file_md5");
+					fclose($fp);
+				}
+
+				$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
+				logd("$full_path exists");
+
+				$get_file_length = filesize($file_path);
+
+				$ret = 1;
+				break;
+			}
+			else
+			{
+				logd("can not get file: $full_path");
+			}
+		}
+
+		if( $ret == 1 )
+		{
+			print("{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}");
+			logd();
+			logd("get update file!");
+			disconnect_from_mysql_server($mdb);
+			return $ret;
+		}
+		else
+		{
+			logd("Error!");
+			print("null");
+			disconnect_from_mysql_server($mdb);
+			return $ret;
+		}
+
+	}
+	else
+	{
+		echo "version is not $version_prefix !!\n";
+		logd();
+	}
+
+	disconnect_from_mysql_server($mdb);
+
+}
+
+
+
+
 /* Main */
 
 $get_serv = $_SERVER['HTTP_HOST'];
 $get_port = $_SERVER["SERVER_PORT"];
 $get_remoteip = $_SERVER["REMOTE_ADDR"];
+
 $get_id = $_GET['id'];
 $get_sn = $_GET['sn'];
-
-// $get_ver = $_POST['ver'];
 $get_ver = $_GET['ver'];
-//$get_ot_time = $_POST['m_ot_time'];
 
 date_default_timezone_set('Asia/Shanghai');
 $current_dt = date('Y-m-d');
@@ -370,156 +489,7 @@ $current_tm = date('H:i:s');
 
 
 
-
-/* get args from url */
-$id_info = explode("-",$get_id);
-/* tranform ip to dec */
-$get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
-/* check and log user info */
-$get_data = $get_full_path;
-
-logd("get host -->$get_serv:$get_port<--remote ip -->$get_remoteip<--get ver-->$get_ver<--current date -->$current_dt");
-logd("get host -->$get_serv:$get_port<--remote ip dec -->$get_remoteip_dec<--get ver-->$get_ver<----current date -->$current_dt<---get id-->$get_id<---");
-
-if( strlen($get_ver) != 0 )
-{
-	logd("----------------------------Insert info into DB------------------------------------------");
-	db_insert($db_server,$db_user,$db_pwd,$get_ver,$get_id,$get_sn,$get_remoteip_dec);
-	logd("----------------------------Read Info from DB------------------------------------------");
-	// $ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,$current_dt,$current_tm,$get_id);
-	$ret = show_data($db_server,$db_user,$db_pwd);
-	logd("----------------------------End of DB action------------------------------------------");
-	// db_insert($server,$user,$pwd,$get_ver,$get_id,$get_sn,$get_rempteip)
-	// $forward_url = sprintf("http://10.173.235.228/fota/index.php?id=%s",$get_ver);
-	// header("Location: $forward_url");
-}
-/*
-else if(strlen($get_id) != 0)
-{
-	logd("insert ver from id");
-	$ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,$current_dt,$current_tm,$get_id);
-}
-else
-	echo "Do not have ID"
-
-	//$ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,"2016-05-03","20:10:00","李劲");
-*/
-
-// $ver_pos = stripos($get_ver,"-")
-
-$version_prefix = "HGSoft-v";
-$version_offset = 0;
-
-$ret = substr_compare($get_ver,$version_prefix , $version_offset ,strlen($version_prefix));
-if ( $ret == 0 )
-{
-	$usr_ver_info = strrchr($get_ver,'v');
-	$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
-	// logd("get user version: $usr_ver");
-
-	$get_usr_ver = get_version_detail($usr_ver);
-	logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] ");
-
-	// **************** Get local list and sort ********************* //
-	$ver_list = dir_list('./version/');
-	$arrlength=count($ver_list);
-	sort($ver_list);
-	// **************** Get local list and sort ********************* //
-
-
-	logd("get dir list :");
-	$ret = 0;
-	for ($i0=$arrlength-1; $i0 >= 0; $i0--)
-	{
-		$get_local_ver_info = strrchr($ver_list[$i0], 'v');
-		$local_ver_info = substr( $get_local_ver_info,1);
-		logd(" -- get local version --> $ver_list[$i0] <----> $local_ver_info <--");
-
-
-		$local_ver = get_version_detail($local_ver_info);
-		/*
-		if( $local_ver[0] > $get_usr_ver[0] )
-		{
-			$get_usr_ver = $local_ver;
-		}
-		else if( $local_ver[0] == $get_usr_ver[0] )
-		{
-			if( $local_ver[1] > $get_usr_ver[1] )
-			{
-				$get_usr_ver = $local_ver;
-			}
-			else if( $local_ver[1] == $get_usr_ver[1] )
-			{
-				if( $local_ver[2] > $get_usr_ver[2] )
-				{
-					$get_usr_ver = $local_ver;
-				}
-			}
-		}
-		*/
-		$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
-			$local_ver[0], $local_ver[1], $local_ver[2], 
-			$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-		$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
-			$local_ver[0], $local_ver[1], $local_ver[2], 
-			$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-		logd("look for file: $file_path .");
-		if (file_exists($file_path))
-		{
-			if( file_exists( $md5_file_path ) )
-			{
-				$fp = fopen( $md5_file_path , 'r');
-				$get_md5_from_file = fread($fp, 1024);
-				logd("get md5 from file: $get_md5_from_file");
-				fclose($fp);
-				$file_md5 = $get_md5_from_file;
-			}
-			else
-			{
-				$file_md5 = md5_file($file_path);
-				$fp = fopen( $md5_file_path ,'w');
-				fwrite($fp,"$file_md5");
-				fclose($fp);
-			}
-
-			$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
-			logd("$full_path exists");
-
-			$get_file_length = filesize($file_path);
-
-			$ret = 1;
-			break;
-		}
-		else
-		{
-			logd("can not get file: $full_path");
-		}
-	}
-
-	if( $ret == 1 )
-	{
-		print("{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}");
-		logd();
-		logd("get update file!");
-	}
-	else
-	{
-		logd("Error!");
-		print("null");
-	}
-
-}
-else
-{
-	echo "version is not $version_prefix !!\n";
-	logd();
-}
-
-
-
-
-
-
+update_server_main( $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver , $current_dt ,$current_tm);
 
 
 ?>
