@@ -90,7 +90,7 @@ function connect_to_mysql_server($db_server,$db_user,$db_pwd)
 	return $db_mdb;
 }
 
-function select_database($db_mdb,$sel_db)
+function select_database($sel_db,$db_mdb)
 {
 	$result  = mysql_select_db($sel_db, $db_mdb);
 }
@@ -109,43 +109,20 @@ function disconnect_from_mysql_server($db_mdb)
 
 function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
 {
-	// $mdb = mysql_connect($server,$user,$pwd);
-	if(!$mdb)
-	{
-		logd("connect db Fail!");
-		// die('Could not connect: ' . mysql_error());
-	}
-	else
-	{
-		logd("connect sucess");
-	}
-
-
 	$ret = mysql_select_db("fota", $mdb);
 
 	$insert_str = sprintf("INSERT INTO `fota`(`timestamp`, `sn`, `version`, `fp`,`remoteip`) VALUES (now(),'%s','%s','%s','%s')",$get_sn,$get_ver,$get_id,$get_remoteip_dec);
 	$result = mysql_query($insert_str);
 	logd("------------>$insert_str<--<$ret:$result>--------");
 
-	// mysql_close($mdb);
 	return 1;
 }
 
 
-// function show_data($server,$user,$pwd)
 function show_data($mdb)
 {
 	$display = 1;
-	// $mdb = mysql_connect($server,$user,$pwd);
-	if(!$mdb)
-	{
-		logd("Entering show data...connect db Fail!");
-		// die('Could not connect: ' . mysql_error());
-	}
-	else
-	{
-		logd("Entering show data...connect db OK!");
-	}
+
 	mysql_select_db("fota", $mdb);
 	/* show data */
 	$sql = "SELECT * FROM `fota`";
@@ -171,16 +148,6 @@ function show_data($mdb)
 function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_dt,$get_tm,$get_ver)
 {
 	// $mdb = mysql_connect($server,$user,$pwd);
-	if(!$mdb)
-	{
-		echo "connect db Fail!";
-	}
-	else
-	{
-		logd("connect db OK!");
-	}
-
-
 	$check_ver = $get_ver;
 
 
@@ -315,42 +282,83 @@ function get_version_detail($ver_str)
 		return array($get_ver_str_01 , $get_ver_str_02 , $get_ver_str_03);
 }
 
-
-
-function update_server_main( $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver , $current_dt ,$current_tm)
+function update_obd_app()
 {
-	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?ver=HGSoft-v19.9.1&sn=440011600000075&id=1482167729 <<----------");
-	logd();
-	logd();
-	logd("Debug --------->");
+}
 
-	/* tranform ip to dec */
+function get_platform_info($get_platform)
+{
+	$hgsoft_platform= array
+		(
+			// project_name, with_db_support
+			// "ibx", 1 --> means project ibx, with db support
+			array("obd",0),
+			array("obdapp",0),
+			array("obd_bt",0),
+			array("ibx",1),
+			// array("Volvo",22,18),
+			// array("BMW",15,13),
+			// array("Saab",5,2),
+			// array("Land Rover",17,15)
+		);
+
+	$get_hgsoft_platform[0] = "";
+	$get_hgsoft_platform[1] = 0;
+
+	$hgsoft_platform_arrlen=count($hgsoft_platform);
+	if( strlen ($get_platform) != 0 )
+	{
+		for ($i0=$hgsoft_platform_arrlen-1; $i0 >= 0; $i0--)
+		{
+			// $ret = substr_compare($get_platform, $hgsoft_platform[$i0] , 0 ,strlen($get_platform));
+			$ret = strcmp($get_platform, $hgsoft_platform[$i0][0]);
+			if($ret == 0)
+			{
+				$get_hgsoft_platform = $hgsoft_platform[$i0];
+				break;
+			}
+		}
+	}
+	if( strlen ($get_hgsoft_platform[0]) == 0 )
+	{
+		// logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
+		$get_hgsoft_platform[0] = "ibx";
+		$get_hgsoft_platform[1] = 1;
+	}
+
+	return $get_hgsoft_platform;
+}
+
+function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver )
+{
+	$check_sn_str = sprintf("SELECT * FROM `fota` WHERE `sn` = %s ",$get_sn);
+	logd($check_sn_str);
+	$check_sn_stat = mysql_query($check_sn_str);
+	$sn_stat = mysql_fetch_array($check_sn_stat);
+	logd(" Get current sn stat : ");
+	logd($sn_stat['sn']);
+
 	$get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
 
-	logd("host  : $get_serv:$get_port");
-	logd("remote ip :$get_remoteip($get_remoteip_dec)");
-	logd("version  : $get_ver");
-	logd("time  : $current_dt");
-	logd("id  : $get_id");
-
-	$db_server = get_db_server();
-	$db_user = get_db_user();
-	$db_pwd = get_db_pwd();
-	logd("DB server : $db_server");
-
-	$mdb = connect_to_mysql_server($db_server,$db_user,$db_pwd);
-
-
-	if( strlen($get_ver) != 0 )
+	if( strlen($sn_stat['sn']) == 0 )
 	{
 		logd("----------------------------Insert info into DB------------------------------------------");
 		db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec);
 		logd("----------------------------Read Info from DB------------------------------------------");
-		// $ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,$current_dt,$current_tm,$get_id);
 		$ret = show_data($mdb);
 		logd("----------------------------End of DB action------------------------------------------");
+		// $ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,$get_id);
 		// $forward_url = sprintf("http://10.173.235.228/fota/index.php?id=%s",$get_ver);
 		// header("Location: $forward_url");
+	}
+	else
+	{
+		logd("----------------------------Update DB info------------------------------------------");
+		$sql = sprintf(" UPDATE `fota` SET `timestamp`=now(),`version`=\"%s\",`fp`=\"%s\",`remoteip`=\"%s\" WHERE `sn`=\"%s\" ",$get_ver,$get_id, $get_remoteip_dec,$get_sn);
+		mysql_query($sql, $mdb);
+		logd("----------------------------Read Info from DB------------------------------------------");
+		$ret = show_data($mdb);
+		logd("----------------------------End of DB action------------------------------------------");
 	}
 	// $ver_pos = stripos($get_ver,"-")
 
@@ -448,14 +456,12 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_id, $get_
 			print("{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}");
 			logd();
 			logd("get update file!");
-			disconnect_from_mysql_server($mdb);
 			return $ret;
 		}
 		else
 		{
 			logd("Error!");
 			print("null");
-			disconnect_from_mysql_server($mdb);
 			return $ret;
 		}
 
@@ -465,8 +471,63 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_id, $get_
 		echo "version is not $version_prefix !!\n";
 		logd();
 	}
+}
 
-	disconnect_from_mysql_server($mdb);
+function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_platform )
+{
+}
+
+
+function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver )
+// function update_server_main( $base_info)
+{
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=obd&ver=HGSoft-v19.9.1&sn=440011600000075&id=1482167729 <<----------");
+	logd();
+	logd();
+	logd("Debug --------->");
+
+	/* tranform ip to dec */
+	$get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
+	$current_tm = date('H:i:s');
+
+	logd("host  : $get_serv:$get_port");
+	logd("remote ip :$get_remoteip($get_remoteip_dec)");
+	logd("version  : $get_ver");
+	logd("id  : $get_id");
+	logd("platform  : $get_platform");
+	logd("time : $current_tm");
+
+	$get_hgsoft_platform = get_platform_info($get_platform);
+	logd("platform(fixed) : $get_hgsoft_platform[0]");
+	logd("db support : $get_hgsoft_platform[1]");
+
+	$db_server = get_db_server();
+	$db_user = get_db_user();
+	$db_pwd = get_db_pwd();
+	logd("DB server : $db_server");
+
+	if( $get_hgsoft_platform[1] == 1)
+	{
+		logd("----------------------------Connect to DB------------------------------------------");
+		$mdb = connect_to_mysql_server($db_server,$db_user,$db_pwd);
+		select_database('fota',$mdb);
+	}
+
+	if (strcmp("$get_hgsoft_platform[0]","ibx") == 0)
+	{
+		update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver );
+	}
+	else
+	{
+		update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_platform );
+	}
+
+	if( $get_hgsoft_platform[1] == 1)
+	{
+		logd();
+		logd("----------------------------Disconnect to DB------------------------------------------");
+		disconnect_from_mysql_server($mdb);
+	}
 
 }
 
@@ -482,14 +543,18 @@ $get_remoteip = $_SERVER["REMOTE_ADDR"];
 $get_id = $_GET['id'];
 $get_sn = $_GET['sn'];
 $get_ver = $_GET['ver'];
+$get_platform = $_GET['platform'];
 
 date_default_timezone_set('Asia/Shanghai');
-$current_dt = date('Y-m-d');
-$current_tm = date('H:i:s');
+// $current_dt = date('Y-m-d');
+// $current_tm = date('H:i:s');
 
 
+$base_info = array($get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver );
 
-update_server_main( $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver , $current_dt ,$current_tm);
+
+update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver);
+// update_server_main( $base_info );
 
 
 ?>
