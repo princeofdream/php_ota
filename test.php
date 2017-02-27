@@ -300,10 +300,10 @@ function get_platform_info($get_platform, $get_ver)
 		(
 			// project_name, with_db_support
 			// "ibx", 1 --> means project ibx, with db support
-			array("obd",0),
-			array("obdapp",0),
-			array("obd_bt",0),
-			array("ibx",1),
+			array("obd",0,".bin"),
+			array("obd_app",0,"apk"),
+			array("obd_bt",0,".img"),
+			array("ibx",1,".zip"),
 			// array("Volvo",22,18),
 			// array("BMW",15,13),
 			// array("Saab",5,2),
@@ -356,7 +356,7 @@ function strip_version_str($ver_str,$end_str,$front_str)
 	return $get_ver_str;
 }
 
-function get_update_file($get_platform, $ver_prefix, $get_ver, $get_serv)
+function get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver, $get_serv)
 {
 	$version_prefix = $ver_prefix;
 	$version_offset = 0;
@@ -372,7 +372,7 @@ function get_update_file($get_platform, $ver_prefix, $get_ver, $get_serv)
 		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] .$get_usr_ver[3]");
 
 		// **************** Get local list and sort ********************* //
-		$ver_dir = sprintf("./version/%s/",$get_platform);
+		$ver_dir = sprintf("./version/%s/",$get_hgsoft_platform[0]);
 		$ver_list = dir_list($ver_dir);
 		$arrlength=count($ver_list);
 		sort($ver_list);
@@ -414,12 +414,12 @@ function get_update_file($get_platform, $ver_prefix, $get_ver, $get_serv)
 				}
 			}
 			 */
-			if(strcmp($get_platform,"obd") == 0 ||
-				strcmp($get_platform,"obdapp") == 0 ||
-				strcmp($get_platform,"bt") == 0
+			if(strcmp($get_hgsoft_platform[0],"obd") == 0 ||
+				strcmp($get_hgsoft_platform[0],"obd_app") == 0 ||
+				strcmp($get_hgsoft_platform[0],"obd_bt") == 0
 			)
 			{
-				if( strcmp(strrchr($ver_list[$i0], '.apk'), ".apk") == 0)
+				if( strcmp(strrchr($ver_list[$i0], $get_hgsoft_platform[2]), $get_hgsoft_platform[2]) == 0)
 				{
 					$file_path = $get_ver_info;
 					$md5_file_path = sprintf("%s.md5",$get_ver_info);
@@ -447,7 +447,15 @@ function get_update_file($get_platform, $ver_prefix, $get_ver, $get_serv)
 						$get_local_ver = "$get_local_ver.$local_ver[$i0]";
 					}
 
-					print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+					for($i1 = 0; $i1 < count($local_ver); $i1++)
+					{
+						if( $local_ver[$i1] > $get_usr_ver[$i1] )
+						{
+							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+							return;
+						}
+					}
+					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
 					return;
 				}
 				else
@@ -662,13 +670,11 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 	}
 }
 
-function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_platform )
+function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_hgsoft_platform )
 {
 	// $full_path = sprintf("http://$get_serv/fota/%s",$file_path);
 	$ver_prefix = "v";
-	get_update_file($get_platform, $ver_prefix, $get_ver,$get_serv);
-	// $full_path = sprintf("http://$get_serv/fota/version/%s/v1.2.3/from_v0.1.2/obdapp.apk",$get_platform);
-	// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}}");
+	get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver,$get_serv);
 }
 
 
@@ -694,6 +700,7 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	$get_hgsoft_platform = get_platform_info($get_platform,$get_ver);
 	logd("platform(fixed) : $get_hgsoft_platform[0]");
 	logd("db support : $get_hgsoft_platform[1]");
+	logd("file type : $get_hgsoft_platform[2]");
 
 	$db_server = get_db_server();
 	$db_user = get_db_user();
@@ -721,7 +728,7 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	}
 	else
 	{
-		update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_platform );
+		update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_hgsoft_platform );
 	}
 
 	if( $get_hgsoft_platform[1] == 1)
