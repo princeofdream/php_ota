@@ -1,46 +1,3 @@
-
-<html>
-
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta http-equiv="Content-Language" content="zh-CN" />
-<title>HGSoft X server</title>
-</head>
-
-<style type="text/css">
-body {
-	border:none;
-	margin:0px auto;
-	padding:0px auto;
-    background-color: rgb(97, 103, 180);
-	text-align: left;
-	width:70%;
-	float:left;
-	margin-left:15%;
-	margin-right;15%;
-}
-.cont_left{
-position:relative;
-left:50px;
-font-size:18px;
-font-weight:bold;
-}
-.links {color: #009900}
-div#container{/*width:720px;*/max-height:1920}
-div#header {background-color:#99bbbb;}
-div#menu {background-color:#ffff99;height:500;width:20%;float:left;}
-div#content {background-color:#EEEEEE;height:500;width:80%;float:left;}
-div#footer {background-color:#99bbbb;clear:both;text-align:center;}
-h1 {margin-bottom:0;}
-h2 {margin-bottom:0;font-size:18px;}
-ul {margin:0;}
-li {list-style:none;}
-</style>
-
-<body>
-
-
-</br>
 <?php
 //echo $_POST["m_ver"];
 //echo $_POST["m_ot_time"];
@@ -68,7 +25,7 @@ $db_mdb;
 
 function logd($str)
 {
-    $DEBUG=1;
+    $DEBUG=0;
     if($DEBUG === 1){
         echo "$str<br />";
     }else{
@@ -170,30 +127,6 @@ function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_d
 		mysql_query($sql, $mdb);
 		logd("update $get_ip_dec");
 	}
-	//else
-	//{
-		//$check_info = false;
-		//while($row = mysql_fetch_array($result))
-		//{
-			//// if ver is the same, total ++
-			//if($row['vis_ver'] == $check_ver)
-			//{
-				//$sql = sprintf("UPDATE vister_info SET vis_tm = '%s' WHERE vis_ip = '%s' AND path = '%s' ",$row['vis_tm'],$get_ip_dec,$get_dt);
-				//mysql_query($sql, $mdb);
-				//$check_info = true;
-			//}
-		//}
-		//if($check_info == false)
-		//{
-			////$sql = sprintf("INSERT INTO vister_info (vis_ip, total, path) VALUES ('%s', '%s', '%s')",$get_ip_dec,1,$get_dt);
-			//$sql = sprintf("INSERT INTO vister_info (vis_ip, vis_ver, vis_dt, vis_tm, vis_bk) VALUES ('%s', '%s', '%s', '%s', '%s')",$get_ip_dec,$check_ver,$get_dt,$get_tm,"");
-			//mysql_query($sql, $mdb);
-		//}
-		//logd("update $get_ip_dec");
-	//}
-
-	// mysql_close($mdb);
-
 	/* show data */
 	show_data($server,$user,$pwd);
 }
@@ -277,16 +210,48 @@ function get_version_detail($ver_str)
 		$ver_str_tmp_02 = substr($ver_str_tmp_01,$pos_02+1);
 
 		$get_ver_str_03 = $ver_str_tmp_02;
-		// logd("--> pos_01: $pos_01 --> $get_ver_str_01 . $get_ver_str_02 . $get_ver_str_03");
+		logd("--> pos_01: $pos_01 --> $get_ver_str_01 . $get_ver_str_02 . $get_ver_str_03");
 		// **************** END OF Transfer version to int ********************* //
 		return array($get_ver_str_01 , $get_ver_str_02 , $get_ver_str_03);
 }
 
-function update_obd_app()
+function get_version_detail_by_ver($ver_str)
 {
+		// **************** START Transfer version to int ********************* //
+	logd("strip from: $ver_str");
+
+	$ver_info = array(0,0,0,0);
+	$get_ver_str = $ver_str;
+	$ver_num_count = 0;
+	for ($i0=0; $i0 <= 3; $i0++)
+	{
+		$ver_num_count ++;
+		$current_pos = strpos($get_ver_str,'.');
+		$ver_info[$i0] = substr($get_ver_str,0,$current_pos);
+
+		if($current_pos < 1)
+		{
+			$ver_info[$i0] = $get_ver_str;
+			break;
+		}
+		$get_ver_str = substr($get_ver_str,$current_pos+1);
+	}
+	// logd("get ver -------> $ver_info[0] -- $ver_info[1] -- $ver_info[2] -- $ver_info[3]. count: $ver_num_count");
+	if($ver_num_count == 1)
+		return array( $ver_info[0]);
+	else if($ver_num_count == 2)
+		return array( $ver_info[0], $ver_info[1]);
+	else if($ver_num_count == 3)
+		return array( $ver_info[0], $ver_info[1],$ver_info[2]);
+	else if($ver_num_count == 4)
+		return array( $ver_info[0], $ver_info[1],$ver_info[2],$ver_info[3]);
+	else
+		return $ver_info;
+	// **************** END OF Transfer version to int ********************* //
 }
 
-function get_platform_info($get_platform)
+
+function get_platform_info($get_platform, $get_ver)
 {
 	$hgsoft_platform= array
 		(
@@ -319,7 +284,9 @@ function get_platform_info($get_platform)
 			}
 		}
 	}
-	if( strlen ($get_hgsoft_platform[0]) == 0 )
+	$version_prefix = "HGSoft-v";
+	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
+	if( strlen ($get_hgsoft_platform[0]) == 0  && $version_prefix_check == 0)
 	{
 		// logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
 		$get_hgsoft_platform[0] = "ibx";
@@ -328,6 +295,185 @@ function get_platform_info($get_platform)
 
 	return $get_hgsoft_platform;
 }
+
+function strip_version_str($ver_str,$end_str,$front_str)
+{
+	// $get_pos_01 = strrchr($ver_str, '.apk');
+	// $get_pos_02 = strrchr($ver_str, 'v');
+	$get_pos = strpos($ver_str,$end_str);
+	// $get_ver_str = substr($ver_list, $get_pos_02-1, $get_pos_01-1);
+	if($get_pos > 0)
+	{
+		$get_ver_str = substr($ver_str, 0, $get_pos);
+		$get_ver_str = strrchr($get_ver_str, 'v');
+	}
+	else
+		$get_ver_str = strrchr($ver_str, 'v');
+	logd("---$ver_str--<$get_pos>------>>> $get_ver_str <<<---------");
+	return $get_ver_str;
+}
+
+function get_update_file($get_platform, $ver_prefix, $get_ver, $get_serv)
+{
+	$version_prefix = $ver_prefix;
+	$version_offset = 0;
+
+	$ret = substr_compare($get_ver,$version_prefix , $version_offset ,strlen($version_prefix));
+	if ( $ret == 0 )
+	{
+		$usr_ver_info = strrchr($get_ver,'v');
+		$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
+		// logd("get user version: $usr_ver");
+
+		$get_usr_ver = get_version_detail_by_ver($usr_ver);
+		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] .$get_usr_ver[3]");
+
+		// **************** Get local list and sort ********************* //
+		$ver_dir = sprintf("./version/%s/",$get_platform);
+		$ver_list = dir_list($ver_dir);
+		$arrlength=count($ver_list);
+		sort($ver_list);
+		// **************** Get local list and sort ********************* //
+
+
+		logd("get dir list :");
+		$ret = 0;
+		for ($i0=$arrlength-1; $i0 >= 0; $i0--)
+		{
+			// $get_ver_list = $ver_list[$i0];
+			$get_ver_list = strip_version_str($ver_list[$i0],".apk","");
+			$get_ver_info = substr( $ver_list[$i0],2);
+			$get_local_ver_info = strrchr($get_ver_list, 'v');
+			$local_ver_info = substr( $get_local_ver_info,1);
+			logd(" -- get local version --> $get_ver_list <----> $local_ver_info <--");
+
+
+			$local_ver = get_version_detail_by_ver($local_ver_info);
+			logd("local version $local_ver[0].$local_ver[1].$local_ver[2].$local_ver[3]");
+			logd("user version $get_usr_ver[0].$get_usr_ver[1].$get_usr_ver[2].$get_usr_ver[3]");
+			/*
+			if( $local_ver[0] > $get_usr_ver[0] )
+			{
+				$get_usr_ver = $local_ver;
+			}
+			else if( $local_ver[0] == $get_usr_ver[0] )
+			{
+				if( $local_ver[1] > $get_usr_ver[1] )
+				{
+					$get_usr_ver = $local_ver;
+				}
+				else if( $local_ver[1] == $get_usr_ver[1] )
+				{
+					if( $local_ver[2] > $get_usr_ver[2] )
+					{
+						$get_usr_ver = $local_ver;
+					}
+				}
+			}
+			*/
+			if(strcmp($get_platform,"obd") == 0 ||
+				strcmp($get_platform,"obdapp") == 0 ||
+				strcmp($get_platform,"bt") == 0
+			)
+			{
+				if( strcmp(strrchr($ver_list[$i0], '.apk'), ".apk") == 0)
+				{
+				$file_path = $get_ver_info;
+				$md5_file_path = sprintf("%s.md5",$get_ver_info);
+					if( file_exists( $md5_file_path ) )
+					{
+						$fp = fopen( $md5_file_path , 'r');
+						$get_md5_from_file = fread($fp, 1024);
+						logd("get md5 from file: $get_md5_from_file");
+						fclose($fp);
+						$file_md5 = $get_md5_from_file;
+					}
+					else
+					{
+						$file_md5 = md5_file($file_path);
+							$fp = fopen( $md5_file_path ,'w');
+							fwrite($fp,"$file_md5");
+							fclose($fp);
+					}
+				$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
+				$get_file_length = filesize($file_path);
+				$arrlen = count($local_ver);
+				$get_local_ver = "$local_ver[0]";
+				for( $i0 = 1; $i0 < $arrlen;$i0++)
+				{
+					$get_local_ver = "$get_local_ver.$local_ver[$i0]";
+				}
+
+				print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+				return;
+			}
+			else
+					continue;
+			}
+			else
+			{
+			$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+			$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+			logd("look for file: $file_path .");
+			if (file_exists($file_path))
+			{
+				if( file_exists( $md5_file_path ) )
+				{
+					$fp = fopen( $md5_file_path , 'r');
+					$get_md5_from_file = fread($fp, 1024);
+					logd("get md5 from file: $get_md5_from_file");
+					fclose($fp);
+					$file_md5 = $get_md5_from_file;
+				}
+				else
+				{
+					$file_md5 = md5_file($file_path);
+					$fp = fopen( $md5_file_path ,'w');
+					fwrite($fp,"$file_md5");
+					fclose($fp);
+				}
+
+				$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
+				logd("$full_path exists");
+
+				$get_file_length = filesize($file_path);
+
+				$ret = 1;
+				break;
+			}
+			else
+			{
+				logd("can not get file: $full_path");
+			}
+		}
+		}
+
+		if( $ret == 1 )
+		{
+			print("{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}");
+			logd();
+			logd("get update file!");
+			return $ret;
+		}
+		else
+		{
+			logd("Error!");
+			// print("null");
+			return $ret;
+		}
+
+	}
+	else
+	{
+		echo "version is not $version_prefix !!\n";
+		logd();
+	}
+}
+
 
 function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver )
 {
@@ -475,6 +621,11 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 
 function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_platform )
 {
+	// $full_path = sprintf("http://$get_serv/fota/%s",$file_path);
+	$ver_prefix = "v";
+	get_update_file($get_platform, $ver_prefix, $get_ver,$get_serv);
+	// $full_path = sprintf("http://$get_serv/fota/version/%s/v1.2.3/from_v0.1.2/obdapp.apk",$get_platform);
+	// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}}");
 }
 
 
@@ -497,7 +648,7 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	logd("platform  : $get_platform");
 	logd("time : $current_tm");
 
-	$get_hgsoft_platform = get_platform_info($get_platform);
+	$get_hgsoft_platform = get_platform_info($get_platform,$get_ver);
 	logd("platform(fixed) : $get_hgsoft_platform[0]");
 	logd("db support : $get_hgsoft_platform[1]");
 
@@ -506,6 +657,12 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	$db_pwd = get_db_pwd();
 	logd("DB server : $db_server");
 
+	if(strlen($get_hgsoft_platform[0]) == 0 )
+	{
+		print("{\"code\":\"100\",\"msg\":\"Platform not found!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}}");
+		return;
+	}
+
 	if( $get_hgsoft_platform[1] == 1)
 	{
 		logd("----------------------------Connect to DB------------------------------------------");
@@ -513,7 +670,9 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 		select_database('fota',$mdb);
 	}
 
-	if (strcmp("$get_hgsoft_platform[0]","ibx") == 0)
+	$version_prefix = "HGSoft-v";
+	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
+	if (strcmp("$get_hgsoft_platform[0]","ibx") == 0 && $version_prefix_check == 0)
 	{
 		update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver );
 	}
@@ -558,5 +717,3 @@ update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id,
 
 
 ?>
-</body>
-</html>
