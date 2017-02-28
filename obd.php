@@ -27,7 +27,8 @@ function logd($str)
 {
     $DEBUG=0;
     if($DEBUG === 1){
-        echo "$str<br />";
+		$current_tm = date('H:i:s');
+        echo "[ DEBUG $current_tm ]  $str<br />";
     }else{
     }
 }
@@ -218,6 +219,7 @@ function get_version_detail($ver_str)
 function get_version_detail_by_ver($ver_str)
 {
 		// **************** START Transfer version to int ********************* //
+	// for version 1.23.456.789
 	logd("strip from: $ver_str");
 
 	$ver_info = array(0,0,0,0);
@@ -237,6 +239,10 @@ function get_version_detail_by_ver($ver_str)
 		$get_ver_str = substr($get_ver_str,$current_pos+1);
 	}
 	// logd("get ver -------> $ver_info[0] -- $ver_info[1] -- $ver_info[2] -- $ver_info[3]. count: $ver_num_count");
+	$ret_ver = $ver_info[0];
+	for($i0 = 0; $i0 < $ver_num_count; $i0++)
+	{
+	}
 	if($ver_num_count == 1)
 		return array( $ver_info[0]);
 	else if($ver_num_count == 2)
@@ -257,10 +263,10 @@ function get_platform_info($get_platform, $get_ver)
 		(
 			// project_name, with_db_support
 			// "ibx", 1 --> means project ibx, with db support
-			array("obd",0,".bin"),
-			array("obd_app",0,"apk"),
-			array("obd_bt",0,".img"),
-			array("ibx",1,".zip"),
+			array("obd",0,".bin","",""),
+			array("obd_app",0,"apk","v","v"),
+			array("obd_bt",0,".img","v","v"),
+			array("ibx",1,".zip","v","HGSoft-v"),
 			// array("Volvo",22,18),
 			// array("BMW",15,13),
 			// array("Saab",5,2),
@@ -288,9 +294,10 @@ function get_platform_info($get_platform, $get_ver)
 	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
 	if( strlen ($get_hgsoft_platform[0]) == 0  && $version_prefix_check == 0)
 	{
-		// logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
-		$get_hgsoft_platform[0] = "ibx";
-		$get_hgsoft_platform[1] = 1;
+		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
+		// $get_hgsoft_platform[0] = "ibx";
+		// $get_hgsoft_platform[1] = 1;
+		$get_hgsoft_platform = $hgsoft_platform[3];
 	}
 
 	return $get_hgsoft_platform;
@@ -298,10 +305,7 @@ function get_platform_info($get_platform, $get_ver)
 
 function strip_version_str($ver_str,$end_str,$front_str)
 {
-	// $get_pos_01 = strrchr($ver_str, '.apk');
-	// $get_pos_02 = strrchr($ver_str, 'v');
-	$get_pos = strpos($ver_str,$end_str);
-	// $get_ver_str = substr($ver_list, $get_pos_02-1, $get_pos_01-1);
+	$get_pos = strrpos($ver_str,$end_str);
 	if($get_pos > 0)
 	{
 		$get_ver_str = substr($ver_str, 0, $get_pos);
@@ -313,19 +317,31 @@ function strip_version_str($ver_str,$end_str,$front_str)
 	return $get_ver_str;
 }
 
-function get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver, $get_serv)
+function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 {
-	$version_prefix = $ver_prefix;
-	$version_offset = 0;
+	$version_prefix = $get_hgsoft_platform[4];
+	$ret = strstr($get_ver,$version_prefix);
 
-	$ret = substr_compare($get_ver,$version_prefix , $version_offset ,strlen($version_prefix));
-	if ( $ret == 0 )
+	logd("-------$ret");
+
+	if ( $ret != null || strlen($version_prefix) == 0 )
 	{
-		$usr_ver_info = strrchr($get_ver,'v');
+		$usr_ver = "";
+		if( strlen($version_prefix) != 0 )
+	{
+			$usr_ver_info = strrchr($get_ver, $get_hgsoft_platform[3]);
 		$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
+		}
+		else
+		{
+			if( strcmp($get_hgsoft_platform[0], "obd") ==0)
+			{
+				$usr_ver = $get_ver;
+			}
+		}
 		// logd("get user version: $usr_ver");
-
 		$get_usr_ver = get_version_detail_by_ver($usr_ver);
+
 		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] .$get_usr_ver[3]");
 
 		// **************** Get local list and sort ********************* //
@@ -340,11 +356,24 @@ function get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver, $get_serv)
 		$ret = 0;
 		for ($i0=$arrlength-1; $i0 >= 0; $i0--)
 		{
-			// $get_ver_list = $ver_list[$i0];
-			$get_ver_list = strip_version_str($ver_list[$i0],".apk","");
 			$get_ver_info = substr( $ver_list[$i0],2);
-			$get_local_ver_info = strrchr($get_ver_list, 'v');
+			// $get_ver_list = $ver_list[$i0];
+			$local_ver_info = "";
+			if( strlen($version_prefix) != 0 )
+			{
+				$get_ver_list = strip_version_str($ver_list[$i0],$get_hgsoft_platform[2],"");
+				$get_local_ver_info = strrchr($get_ver_list, $get_hgsoft_platform[3]);
 			$local_ver_info = substr( $get_local_ver_info,1);
+			}
+			else
+			{
+				if( strcmp($get_hgsoft_platform[0], "obd") ==0)
+				{
+					$get_ver_list = strip_version_str($ver_list[$i0],"-","");
+					$get_local_ver_info = strstr($get_ver_list,"JM-");
+					$local_ver_info=substr( $get_local_ver_info,strlen("JM-"));
+				}
+			}
 			logd(" -- get local version --> $get_ver_list <----> $local_ver_info <--");
 
 
@@ -416,7 +445,10 @@ function get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver, $get_serv)
 					return;
 				}
 			else
+				{
+					logd("Not specify file type!");
 					continue;
+			}
 			}
 			else
 			{
@@ -470,6 +502,7 @@ function get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver, $get_serv)
 		else
 		{
 			logd("Error!");
+			print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
 			// print("null");
 			return $ret;
 		}
@@ -477,8 +510,9 @@ function get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver, $get_serv)
 	}
 	else
 	{
-		echo "version is not $version_prefix !!\n";
+		logd("version is not $version_prefix !!");
 		logd();
+		print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
 	}
 }
 
@@ -622,16 +656,14 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 	}
 	else
 	{
-		echo "version is not $version_prefix !!\n";
+		logd("version is not $version_prefix !!");
 		logd();
 	}
 }
 
 function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_hgsoft_platform )
 {
-	// $full_path = sprintf("http://$get_serv/fota/%s",$file_path);
-	$ver_prefix = "v";
-	get_update_file($get_hgsoft_platform, $ver_prefix, $get_ver,$get_serv);
+	get_update_file($get_hgsoft_platform, $get_ver,$get_serv);
 }
 
 
@@ -658,6 +690,8 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	logd("platform(fixed) : $get_hgsoft_platform[0]");
 	logd("db support : $get_hgsoft_platform[1]");
 	logd("file type : $get_hgsoft_platform[2]");
+	logd("version key word : $get_hgsoft_platform[3]");
+	logd("version prefix : $get_hgsoft_platform[4]");
 
 	$db_server = get_db_server();
 	$db_user = get_db_user();
