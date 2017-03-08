@@ -263,10 +263,10 @@ function get_platform_info($get_platform, $get_ver)
 		(
 			// project_name, with_db_support
 			// "ibx", 1 --> means project ibx, with db support
-			array("obd",0,".bin","",""),
-			array("obd_app",0,"apk","v","v"),
-			array("obd_bt",0,".img","v","v"),
-			array("ibx",1,".zip","v","HGSoft-v"),
+			// platform, DB, file ext name, keyword, prefix
+			array("obd",0,".bin","","",""),
+			array("obd_app",0,".apk","","",""),
+			array("ibx",1,".zip","v","HGSoft-v",""),
 			// array("Volvo",22,18),
 			// array("BMW",15,13),
 			// array("Saab",5,2),
@@ -321,6 +321,14 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 {
 	$version_prefix = $get_hgsoft_platform[4];
 	$ret = strstr($get_ver,$version_prefix);
+	// for OBD and OBD app
+	$get_pl_ver = 0;
+	$get_up_ver = 0;
+	$get_sub_ver = 0;
+
+	$get_local_pl_ver = 0;
+	$get_local_up_ver = 0;
+	$get_local_sub_ver = 0;
 
 	logd("-------$ret");
 
@@ -334,9 +342,19 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 		}
 		else
 		{
-			if( strcmp($get_hgsoft_platform[0], "obd") ==0)
+			if( strcmp($get_hgsoft_platform[0], "obd") ==0 || strcmp($get_hgsoft_platform[0], "obd_app") ==0)
 			{
 				$usr_ver = $get_ver;
+				if(strlen($usr_ver) < 4)
+				{
+					logd("version error");
+					return -1;
+				}
+				$get_pl_ver = intval(substr($usr_ver,0,2));
+				$get_up_ver = intval(substr($usr_ver,2,4));
+				$get_sub_ver_tmp = strchr($usr_ver,"-");
+				$get_sub_ver = intval(substr($get_sub_ver_tmp,1));
+				logd("---> get version $usr_ver ---> $get_pl_ver ---> $get_up_ver");
 			}
 		}
 		// logd("get user version: $usr_ver");
@@ -367,14 +385,20 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 			}
 			else
 			{
-				if( strcmp($get_hgsoft_platform[0], "obd") ==0)
+				if( strcmp($get_hgsoft_platform[0], "obd") ==0 || strcmp($get_hgsoft_platform[0], "obd_app") ==0)
 				{
 					$get_ver_list = strip_version_str($ver_list[$i0],"-","");
 					$get_local_ver_info = strstr($get_ver_list,"JM-");
-					$local_ver_info=substr( $get_local_ver_info,strlen("JM-"));
+					$local_ver_info_full=substr( $get_local_ver_info,strlen("JM-"));
+					$local_ver_info = substr($local_ver_info_full,0,4);
+
+					$get_local_pl_ver = intval(substr($local_ver_info_full,0,2));
+					$get_local_up_ver = intval(substr($local_ver_info_full,2,4));
+					$get_local_sub_ver = intval(substr($local_ver_info_full,5,7));
 				}
 			}
 			logd(" -- get local version --> $get_ver_list <----> $local_ver_info <--");
+			logd("--usr: $get_pl_ver.$get_up_ver.$get_sub_ver---local: $get_local_pl_ver.$get_local_up_ver.$get_local_sub_ver-----");
 
 
 			$local_ver = get_version_detail_by_ver($local_ver_info);
@@ -401,10 +425,14 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 			}
 			*/
 			if(strcmp($get_hgsoft_platform[0],"obd") == 0 ||
-				strcmp($get_hgsoft_platform[0],"obd_app") == 0 ||
-				strcmp($get_hgsoft_platform[0],"obd_bt") == 0
+				strcmp($get_hgsoft_platform[0],"obd_app") == 0
 			)
 			{
+				if($get_pl_ver != $get_local_pl_ver)
+				{
+					logd("platform version does not the same,skip...");
+					continue;
+				}
 				if( strcmp(strrchr($ver_list[$i0], $get_hgsoft_platform[2]), $get_hgsoft_platform[2]) == 0)
 				{
 				$file_path = $get_ver_info;
@@ -435,13 +463,40 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 
 					for($i1 = 0; $i1 < count($local_ver); $i1++)
 					{
+						logd("--------get_local:$local_ver[$i1]  --- $get_usr_ver[$i1] ---");
 						if( $local_ver[$i1] > $get_usr_ver[$i1] )
 						{
-				print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+							logd("local_ver > get_usr_ver");
+							// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
 				return;
 			}
+						else if( $get_local_up_ver > $get_up_ver)
+						{
+							logd("$get_local_up_ver > $get_up_ver");
+							// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
+							return;
 					}
-					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+						else if( $get_local_up_ver == $get_up_ver)
+						{
+							logd("get local up ver -> $get_local_up_ver == $get_up_ver");
+							if( $get_local_sub_ver >= $get_sub_ver)
+							{
+								logd("---local sub ver:$get_local_sub_ver, get $get_sub_ver");
+								// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+								print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
+								return;
+							}
+							else
+							{
+								logd("get local_sub_ver < get_sub_ver");
+								// logd("---sub ver:$get_local_sub_ver, get $get_sub_ver");
+							}
+						}
+					}
+					// print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
+					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
 					return;
 				}
 			else
@@ -501,7 +556,7 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 		}
 		else
 		{
-			logd("Error!");
+			logd("Error! File not found!");
 			print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
 			// print("null");
 			return $ret;
@@ -663,7 +718,11 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 
 function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_hgsoft_platform )
 {
-	get_update_file($get_hgsoft_platform, $get_ver,$get_serv);
+	$get_stat = get_update_file($get_hgsoft_platform, $get_ver,$get_serv);
+	if($get_stat == -1)
+	{
+		print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+	}
 }
 
 
@@ -715,10 +774,42 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
 	if (strcmp("$get_hgsoft_platform[0]","ibx") == 0 && $version_prefix_check == 0)
 	{
+		logd("go to ibx project update....");
 		update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver );
 	}
 	else
 	{
+		logd("go to ibx project update....");
+		if( strcmp($get_hgsoft_platform[0], "obd") ==0 ||
+			strcmp($get_hgsoft_platform[0], "obd_app") ==0)
+		{
+			if(strlen($get_ver) < 4)
+				return -1;
+			$get_pl_ver = intval(substr($get_ver,0,2));
+			$get_up_ver = intval(substr($get_ver,2,4));
+			logd("---> get version $get_ver ---> $get_pl_ver ---> $get_up_ver");
+			switch ($get_pl_ver)
+			{
+				case 1:		//obd_simcom_version
+					$get_hgsoft_platform[5] = "simcom";
+					break;
+				case 2:		//obd_ec20_version
+					$get_hgsoft_platform[5] = "ec20";
+					break;
+				case 3:		//obd_zte_version
+					$get_hgsoft_platform[5] = "zte";
+					break;
+				case 4:		//obd_bt_version
+					$get_hgsoft_platform[5] = "bt";
+					break;
+				case 5:		//obd_texi_version
+					$get_hgsoft_platform[5] = "texi";
+					break;
+				default:
+					$get_hgsoft_platform[5] = "";
+					break;
+			}
+		}
 		update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver, $get_hgsoft_platform );
 	}
 
