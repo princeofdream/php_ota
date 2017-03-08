@@ -340,7 +340,7 @@ function get_platform_info($get_platform, $get_ver)
 		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
 		// $get_hgsoft_platform[0] = "ibx";
 		// $get_hgsoft_platform[1] = 1;
-		$get_hgsoft_platform = $hgsoft_platform[3];
+		$get_hgsoft_platform = $hgsoft_platform[2];
 	}
 
 	return $get_hgsoft_platform;
