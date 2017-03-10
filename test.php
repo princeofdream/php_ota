@@ -547,10 +547,11 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 			}
 			else
 			{
-				$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+				$file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
 					$local_ver[0], $local_ver[1], $local_ver[2], 
 					$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-				$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+				logd("=========>> get file path : $file_path");
+				$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
 					$local_ver[0], $local_ver[1], $local_ver[2], 
 					$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 				logd("look for file: $file_path .");
@@ -776,10 +777,10 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 				}
 			}
 			*/
-			$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+			$file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
 				$local_ver[0], $local_ver[1], $local_ver[2], 
 				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-			$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+			$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
 				$local_ver[0], $local_ver[1], $local_ver[2], 
 				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 			logd("look for file: $file_path .");
@@ -851,7 +852,9 @@ function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver )
 // function update_server_main( $base_info)
 {
-	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=obd&ver=HGSoft-v19.9.1&sn=440011600000075&id=1482167729 <<----------");
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<----------");
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=ibx&ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<----------");
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=obd&ver=0401 <<----------");
 	logd();
 	logd();
 	logd("Debug --------->");
