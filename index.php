@@ -10,12 +10,12 @@ function get_db_server()
 
 function get_db_user()
 {
-$db_user = "fota";
+	$db_user = "fota";
 	return $db_user;
 }
 function get_db_pwd()
 {
-$db_pwd = "fota1@#";
+	$db_pwd = "fota1@#";
 	return $db_pwd;
 }
 /*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/
@@ -49,7 +49,7 @@ function connect_to_mysql_server($db_server,$db_user,$db_pwd)
 }
 
 function select_database($sel_db,$db_mdb)
-    {
+{
 	$result  = mysql_select_db($sel_db, $db_mdb);
 }
 
@@ -57,12 +57,12 @@ function run_database_command($query)
 {
     // $query = "SELECT cpuid FROM license_datasheet where cpuid='".$_GET['cpuid']."'";
     $result = mysql_query($query);
-	}
+}
 
 function disconnect_from_mysql_server($db_mdb)
-	{
+{
 	mysql_close($db_mdb);
-	}
+}
 
 
 function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
@@ -78,7 +78,7 @@ function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
 
 
 function show_data($mdb)
-	{
+{
 	$display = 1;
 
 	/* show data */
