@@ -105,6 +105,7 @@ function show_sn_data()
 	$result = mysql_query($sql);
 
 	print( "<table border='1'>");
+	print( "<tr><td>". "序号" . " </td><td>" . "状态控制" . " </td><td>" . "最小序列号" . " </td><td>" . "最大序列号" . "<td></tr>");
 
 	$ret = "NULL";
 	while($row = mysql_fetch_array($result))

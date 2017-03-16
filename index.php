@@ -289,7 +289,7 @@ function get_platform_info($get_platform, $get_ver)
 	}
 	$version_prefix = "HGSoft-v";
 	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
-	if( strlen ($get_hgsoft_platform[0]) == 0  && $version_prefix_check == 0)
+	if( strlen ($get_hgsoft_platform[0]) == 0  && strlen($version_prefix_check) != 0 && $version_prefix_check == 0)
 	{
 		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
 		// $get_hgsoft_platform[0] = "ibx";
@@ -856,12 +856,12 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
 	if (strcmp("$get_hgsoft_platform[0]","ibx") == 0 && $version_prefix_check == 0)
 	{
-		logd("go to ibx project update....");
+		logd("go to ibx project update....$version_prefix_check<--");
 		update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver );
 }
 else
 {
-		logd("go to ibx project update....");
+		logd("go to obd project update....");
 		if( strcmp($get_hgsoft_platform[0], "obd") ==0 ||
 			strcmp($get_hgsoft_platform[0], "obd_app") ==0)
 		{
