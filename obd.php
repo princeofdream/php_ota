@@ -81,21 +81,21 @@ function show_data($mdb)
 {
 	$display = 1;
 
-	mysql_select_db("fota", $mdb);
 	/* show data */
 	$sql = "SELECT * FROM `fota`";
+	// $sql = "SELECT * FROM `fota_machine`";
 	$result = mysql_query($sql);
 
 	if($display === 1)
 	{
-		echo "<table border='1'>";
+		logd( "<table border='1'>");
 	}
 	$ret = "NULL";
 	while($row = mysql_fetch_array($result))
 	{
 		if($display === 1)
 		{
-			echo "<tr><td>". $row['timestamp'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['fp'] . " </td><td>" . $row['remoteip'] . " </td><td>" . $row['version'] . '</td><td>' .$row['sn']  . "<td></tr>";
+			logd( "<tr><td>". $row['timestamp'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['fp'] . " </td><td>" . $row['remoteip'] . " </td><td>" . $row['version'] . '</td><td>' .$row['sn']  . "<td></tr>");
 		}
 	}
 
@@ -108,9 +108,6 @@ function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_d
 	// $mdb = mysql_connect($server,$user,$pwd);
 	$check_ver = $get_ver;
 
-
-
-	mysql_select_db("fota", $mdb);
 
 	$sql = sprintf("SELECT * FROM `fota`");
 	$result = mysql_query($sql,$mdb);
@@ -292,7 +289,7 @@ function get_platform_info($get_platform, $get_ver)
 	}
 	$version_prefix = "HGSoft-v";
 	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
-	if( strlen ($get_hgsoft_platform[0]) == 0  && $version_prefix_check == 0)
+	if( strlen ($get_hgsoft_platform[0]) == 0  && strlen($version_prefix_check) != 0 && $version_prefix_check == 0)
 	{
 		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
 		// $get_hgsoft_platform[0] = "ibx";
@@ -507,10 +504,11 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 			}
 			else
 			{
-			$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+				$file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
 				$local_ver[0], $local_ver[1], $local_ver[2], 
 				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-			$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+				logd("=========>> get file path : $file_path");
+				$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
 				$local_ver[0], $local_ver[1], $local_ver[2], 
 				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 			logd("look for file: $file_path .");
@@ -572,6 +570,65 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 }
 
 
+// SN:	44 - 00 - 1 - 16 - 0 - 000007 - 5
+// provice - xx - device_type - year - batch - number - checksum
+
+function check_sn_to_update($get_sn,$mdb)
+{
+	$sql = "SELECT * FROM `fota_machine`";
+	$result = mysql_query($sql);
+
+	if(strlen($get_sn) != 15)
+	{
+		logd("Error: serial number is incorrect!");
+		return -2;
+	}
+
+	logd( "<table border='2'>");
+	$ret = "NULL";
+	while($row = mysql_fetch_array($result))
+	{
+		logd( "<tr><td>". $row['sec_num'] . " </td><td>" . $row['s_stat'] . " </td><td>" . $row['s_min'] . " </td><td>" . $row['s_max'] . "<td></tr>");
+		if(strcmp($row['s_stat'], "allow") == 0)
+		{
+			$sn_prefix = substr($get_sn,0,5);
+			$sn_year = substr($get_sn,5,2);
+			$sn_batch = substr($get_sn,7,1);
+			$sn_data = intval(substr($get_sn,8,6));
+			$sn_checksum = substr($get_sn,14,1);
+			logd("---get sn---$sn_prefix-----$sn_year---$sn_batch----$sn_data----$sn_checksum--");
+			$sn_min_prefix = substr($row['s_min'],0,5);
+			$sn_min_year = substr($row['s_min'],5,2);
+			$sn_min_batch = substr($row['s_min'],7,1);
+			$sn_min_data = intval(substr($row['s_min'],8,6));
+			$sn_min_checksum = substr($row['s_min'],14,1);
+			logd("---get min sn---$sn_min_prefix-----$sn_min_year---$sn_min_batch----$sn_min_data----$sn_min_checksum--");
+			$sn_max_prefix = substr($row['s_max'],0,5);
+			$sn_max_year = substr($row['s_max'],5,2);
+			$sn_max_batch = substr($row['s_max'],7,1);
+			$sn_max_data = intval(substr($row['s_max'],8,6));
+			$sn_max_checksum = substr($row['s_max'],14,1);
+			logd("---get min sn---$sn_max_prefix-----$sn_max_year---$sn_max_batch----$sn_max_data----$sn_max_checksum--");
+
+			if(strcmp($sn_prefix, $sn_min_prefix) == 0 &&
+				strcmp($sn_year, $sn_min_year) == 0 &&
+				strcmp($sn_batch, $sn_min_batch) == 0 )
+			{
+				if( $sn_data >= $sn_min_data && $sn_data <= $sn_max_data )
+				{
+					logd("bingo!  Check update files!!!");
+					return 0;
+				}
+			}
+
+		}
+	}
+
+	return -1;
+}
+
+
+
 function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver )
 {
 	$check_sn_str = sprintf("SELECT * FROM `fota` WHERE `sn` = %s ",$get_sn);
@@ -619,11 +676,33 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] ");
 
 		// **************** Get local list and sort ********************* //
-		$ver_list = dir_list('./version/');
+		$ver_list = dir_list('./version/ibx/');
 		$arrlength=count($ver_list);
 		sort($ver_list);
 		// **************** Get local list and sort ********************* //
 
+		// **************** Check if sn is in update list ********************* //
+		// select_database('fota',$mdb);
+		$update_stat = check_sn_to_update($get_sn,$mdb);
+		if($update_stat < 0)
+		{
+			logd("Your machine is not in update list!!!");
+			switch($update_stat)
+			{
+				case -1:
+					print("{\"code\":\"600\",\"msg\":\"Unknow!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+					break;
+				case -2:
+					print("{\"code\":\"600\",\"msg\":\"Serial number is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+					break;
+				default:
+					print("null");
+					break;
+			}
+			return $update_stat;
+		}
+		// select_database('fota',$mdb);
+		// **************** End Check if sn is in update list ********************* //
 
 		logd("get dir list :");
 		$ret = 0;
@@ -655,10 +734,10 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 				}
 			}
 			*/
-			$file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+			$file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
 				$local_ver[0], $local_ver[1], $local_ver[2], 
 				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-			$md5_file_path = sprintf("version/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+			$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
 				$local_ver[0], $local_ver[1], $local_ver[2], 
 				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 			logd("look for file: $file_path .");
@@ -705,6 +784,7 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 		{
 			logd("Error!");
 			print("null");
+			logd("");
 			return $ret;
 		}
 
@@ -729,7 +809,9 @@ function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver )
 // function update_server_main( $base_info)
 {
-	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=obd&ver=HGSoft-v19.9.1&sn=440011600000075&id=1482167729 <<----------");
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<----------");
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=ibx&ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<----------");
+	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=obd&ver=0401 <<----------");
 	logd();
 	logd();
 	logd("Debug --------->");
@@ -774,12 +856,12 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
 	if (strcmp("$get_hgsoft_platform[0]","ibx") == 0 && $version_prefix_check == 0)
 	{
-		logd("go to ibx project update....");
+		logd("go to ibx project update....$version_prefix_check<--");
 		update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver );
 	}
 	else
 	{
-		logd("go to ibx project update....");
+		logd("go to obd project update....");
 		if( strcmp($get_hgsoft_platform[0], "obd") ==0 ||
 			strcmp($get_hgsoft_platform[0], "obd_app") ==0)
 		{
