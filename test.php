@@ -394,7 +394,8 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 				$get_up_ver = intval(substr($usr_ver,2,4));
 				$get_sub_ver_tmp = strchr($usr_ver,"-");
 				$get_sub_ver = intval(substr($get_sub_ver_tmp,1));
-				logd("---> get version $usr_ver ---> $get_pl_ver ---> $get_up_ver");
+				logd("---> get usr version detail $usr_ver ---> $get_pl_ver ---> $get_up_ver --> $get_sub_ver");
+				$usr_ver="$get_pl_ver.$get_up_ver.$get_sub_ver";
 			}
 		}
 		// logd("get user version: $usr_ver");
@@ -417,6 +418,12 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 			$get_ver_info = substr( $ver_list[$i0],2);
 			// $get_ver_list = $ver_list[$i0];
 			$local_ver_info = "";
+			$get_file_ext = strrchr($ver_list[$i0], ".");
+			logd("get file ext: $get_file_ext");
+			if( strcmp($get_file_ext, ".md5") == 0)
+			{
+				continue;
+			}
 			if( strlen($version_prefix) != 0 )
 			{
 				$get_ver_list = strip_version_str($ver_list[$i0],$get_hgsoft_platform[2],"");
@@ -435,35 +442,18 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 					$get_local_pl_ver = intval(substr($local_ver_info_full,0,2));
 					$get_local_up_ver = intval(substr($local_ver_info_full,2,4));
 					$get_local_sub_ver = intval(substr($local_ver_info_full,5,7));
+					logd("--->$get_local_pl_ver --> $get_local_up_ver  --> $get_local_sub_ver");
+					$local_ver_info = "$get_local_pl_ver.$get_local_up_ver.$get_local_sub_ver";
 				}
 			}
-			logd(" -- get local version --> $get_ver_list <----> $local_ver_info <--");
+			logd(" -- get local update version --> $get_ver_list <----> $local_ver_info <--");
 			logd("--usr: $get_pl_ver.$get_up_ver.$get_sub_ver---local: $get_local_pl_ver.$get_local_up_ver.$get_local_sub_ver-----");
 
 
 			$local_ver = get_version_detail_by_ver($local_ver_info);
-			logd("local version $local_ver[0].$local_ver[1].$local_ver[2].$local_ver[3]");
-			logd("user version $get_usr_ver[0].$get_usr_ver[1].$get_usr_ver[2].$get_usr_ver[3]");
-			/*
-			if( $local_ver[0] > $get_usr_ver[0] )
-			{
-				$get_usr_ver = $local_ver;
-			}
-			else if( $local_ver[0] == $get_usr_ver[0] )
-			{
-				if( $local_ver[1] > $get_usr_ver[1] )
-				{
-					$get_usr_ver = $local_ver;
-				}
-				else if( $local_ver[1] == $get_usr_ver[1] )
-				{
-					if( $local_ver[2] > $get_usr_ver[2] )
-					{
-						$get_usr_ver = $local_ver;
-					}
-				}
-			}
-			 */
+			logd("local version detail $local_ver[0].$local_ver[1].$local_ver[2].$local_ver[3]");
+			logd("user version detail $get_usr_ver[0].$get_usr_ver[1].$get_usr_ver[2].$get_usr_ver[3]");
+
 			if(strcmp($get_hgsoft_platform[0],"obd") == 0 ||
 				strcmp($get_hgsoft_platform[0],"obd_app") == 0
 			)
@@ -473,7 +463,7 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 					logd("platform version does not the same,skip...");
 					continue;
 				}
-				if( strcmp(strrchr($ver_list[$i0], $get_hgsoft_platform[2]), $get_hgsoft_platform[2]) == 0)
+				if( strcasecmp(strrchr($ver_list[$i0], $get_hgsoft_platform[2]), $get_hgsoft_platform[2]) == 0)
 				{
 					$file_path = $get_ver_info;
 					$md5_file_path = sprintf("%s.md5",$get_ver_info);
@@ -751,6 +741,12 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 		$ret = 0;
 		for ($i0=$arrlength-1; $i0 >= 0; $i0--)
 		{
+			$get_file_ext = strrchr($ver_list[$i0], ".");
+			logd("get file ext: $get_file_ext");
+			if( strcmp($get_file_ext, ".md5") == 0)
+			{
+				continue;
+			}
 			$get_local_ver_info = strrchr($ver_list[$i0], 'v');
 			$local_ver_info = substr( $get_local_ver_info,1);
 			logd(" -- get local version --> $ver_list[$i0] <----> $local_ver_info <--");
