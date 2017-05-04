@@ -450,14 +450,15 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 
 					for($i1 = 0; $i1 < count($local_ver); $i1++)
 					{
-						logd("--------get_local:$local_ver[$i1]  --- $get_usr_ver[$i1] ---");
+						logd("--------get_local:$local_ver[$i1]  --- $get_usr_ver[$i1] --->$i1<--");
 						if( $local_ver[$i1] > $get_usr_ver[$i1] )
 						{
-							logd("local_ver > get_usr_ver");
+							logd("local_ver $local_ver[$i1]  > get_usr_ver $get_usr_ver[$i1] -->$i1<--");
 							// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
 							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
 				return;
 			}
+						/*
 						else if( $get_local_up_ver > $get_up_ver)
 						{
 							logd("$get_local_up_ver > $get_up_ver");
@@ -481,9 +482,19 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 								// logd("---sub ver:$get_local_sub_ver, get $get_sub_ver");
 							}
 						}
+						else if( $get_local_up_ver < $get_up_ver)
+						{
+							break;
+						}
+						 */
+						else if( $local_ver[$i1] < $get_usr_ver[$i1] )
+						{
+							break;
+						}
 					}
 					// print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
-					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
+					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+					// print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"$local_ver_info_full\"}}");
 					return;
 				}
 			else
