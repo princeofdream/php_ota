@@ -1,4 +1,5 @@
 <?php
+// By JamesL 20170508 version 1.0.0
 //echo $_POST["m_ver"];
 //echo $_POST["m_ot_time"];
 
@@ -22,16 +23,34 @@ function get_db_pwd()
 
 $db_mdb;
 
+function get_debug_info()
+{
+	// $DEBUG=1;
+	$DEBUG=0;
+
+	return $DEBUG;
+}
 
 function logd($str)
 {
-    $DEBUG=0;
+    $DEBUG=get_debug_info();
     if($DEBUG === 1){
 		$current_tm = date('H:i:s');
         echo "[ DEBUG $current_tm ]  $str<br />";
     }else{
     }
 }
+
+function logs($str)
+{
+    $DEBUG=get_debug_info();
+    if($DEBUG === 1){
+		print($str);
+    }else{
+    }
+}
+
+
 
 function connect_to_mysql_server($db_server,$db_user,$db_pwd)
 {
@@ -88,45 +107,19 @@ function show_data($mdb)
 
 	if($display === 1)
 	{
-		logd( "<table border='1'>");
+		logs( "<table border='1'>");
 	}
 	$ret = "NULL";
 	while($row = mysql_fetch_array($result))
 	{
 		if($display === 1)
 		{
-			logd( "<tr><td>". $row['timestamp'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['fp'] . " </td><td>" . $row['remoteip'] . " </td><td>" . $row['version'] . '</td><td>' .$row['sn']  . "<td></tr>");
+			logs("<tr><td>". $row['timestamp'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['fp'] . " </td><td>" . $row['remoteip'] . " </td><td>" . $row['version'] . '</td><td>' .$row['sn']  . "<td></tr>");
 		}
 	}
 
 	// mysql_close($mdb);
 	return $ret;
-}
-
-function read_fota_vister_info_db($server,$user,$pwd,$display,$get_ip_dec,$get_dt,$get_tm,$get_ver)
-{
-	// $mdb = mysql_connect($server,$user,$pwd);
-	$check_ver = $get_ver;
-
-
-	$sql = sprintf("SELECT * FROM `fota`");
-	$result = mysql_query($sql,$mdb);
-	$row = mysql_fetch_array($result);
-
-	if($row['vis_ver'] == null)
-	{
-		$sql = sprintf("INSERT INTO vister_info (vis_ip, vis_ver, vis_dt, vis_tm, vis_bk) VALUES ('%s', '%s', '%s', '%s', '%s')",$get_ip_dec,$check_ver,$get_dt,$get_tm,$get_ver);
-		mysql_query($sql, $mdb);
-		logd("insert $get_ip_dec");
-	}
-	else if($row['vis_dt'] == $get_dt && $row['vis_ver'] == $check_ver)
-	{
-		$sql = sprintf("UPDATE vister_info SET vis_tm = \"%s\" WHERE vis_dt = \"%s\" AND vis_ver = \"%s\" ",$get_tm,$get_dt,$check_ver);
-		mysql_query($sql, $mdb);
-		logd("update $get_ip_dec");
-	}
-	/* show data */
-	show_data($server,$user,$pwd);
 }
 
 
@@ -215,7 +208,7 @@ function get_version_detail($ver_str)
 
 function get_version_detail_by_ver($ver_str)
 {
-	// **************** START Transfer version to int ********************* //
+		// **************** START Transfer version to int ********************* //
 	// for version 1.23.456.789
 	logd("strip from: $ver_str");
 
@@ -300,42 +293,71 @@ function get_platform_info($get_platform, $get_ver)
 	return $get_hgsoft_platform;
 }
 
-function strip_version_str($ver_str,$end_str,$front_str)
+function strip_version_str($ver_str,$end_str,$start_str)
 {
-	$get_pos = strrpos($ver_str,$end_str);
+	// change ***HGOBD-APP-JM-0006-05<<-20161012.BIN>> to 0006-05
+	$ver_info = $ver_str;
+	if(strlen($end_str) != 0)
+	{
+		$get_pos = strrpos($ver_info,$end_str);
 	if($get_pos > 0)
 	{
-		$get_ver_str = substr($ver_str, 0, $get_pos);
-		$get_ver_str = strrchr($get_ver_str, 'v');
+			$ver_info = substr($ver_info, 0, $get_pos);
+		}
 	}
-	else
-		$get_ver_str = strrchr($ver_str, 'v');
-	logd("---$ver_str--<$get_pos>------>>> $get_ver_str <<<---------");
-	return $get_ver_str;
+
+	if(strlen($start_str) != 0 )
+	{
+		$get_pos = strrpos($ver_info,$start_str);
+		if($get_pos > 0)
+		{
+			$ver_info = substr($ver_info, $get_pos+strlen($start_str));
+		}
+	}
+
+	return $ver_info;
+}
+
+function transfer_obd_ver_str_to_int($ver_info)	// 1234xxxx-56 || 1234xxxx ==> 12 34 56
+{
+	$ver_int_array[0] = -1;
+	$ver_int_array[1] = 0;
+	$ver_int_array[2] = 0;
+	$ver_int_array[3] = 0;
+
+	// $ver_int_aray_len=count($ver_int_array);
+	if(strlen($ver_info) < 4)
+		return $ver_int_array;
+
+	$ver_int_array[0] = intval(substr($ver_info,0,2));	//[0] [1]
+	$ver_int_array[1] = intval(substr($ver_info,2,4));	// [2] [3]
+	$get_sub_ver_tmp = strchr($ver_info,"-");
+	$ver_int_array[2] = intval(substr($get_sub_ver_tmp,1));
+	logd("---> get usr version detail $ver_info ---> $ver_int_array[0] ---> $ver_int_array[1] --> $ver_int_array[2] --> $ver_int_array[3]");
+	return $ver_int_array;
 }
 
 function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 {
+	// version info -> "obd",0,".BIN","","",""
 	$version_prefix = $get_hgsoft_platform[4];
 	$ret = strstr($get_ver,$version_prefix);
+	logd("get_ver--> $get_ver");
 	// for OBD and OBD app
-	$get_pl_ver = 0;
-	$get_up_ver = 0;
-	$get_sub_ver = 0;
+	$usr_ver_array = array(0,0,0,0);
+	$server_ver_array = array(0,0,0,0);
 
-	$get_local_pl_ver = 0;
-	$get_local_up_ver = 0;
-	$get_local_sub_ver = 0;
 
 	logd("-------$ret");
 
-	if ( $ret != null || strlen($version_prefix) == 0 )
+	if ( $ret != null || strlen($version_prefix) == 0 )	// can not get ver from version_prefix
 	{
+		// **************** Start Get user version ********************* //
 		$usr_ver = "";
 		if( strlen($version_prefix) != 0 )
-		{
+	{
 			$usr_ver_info = strrchr($get_ver, $get_hgsoft_platform[3]);
-			$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
+		$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
 		}
 		else
 		{
@@ -347,174 +369,67 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 					logd("version error");
 					return -1;
 				}
-				$get_pl_ver = intval(substr($usr_ver,0,2));
-				$get_up_ver = intval(substr($usr_ver,2,4));
-				$get_sub_ver_tmp = strchr($usr_ver,"-");
-				$get_sub_ver = intval(substr($get_sub_ver_tmp,1));
-				logd("---> get usr version detail $usr_ver ---> $get_pl_ver ---> $get_up_ver --> $get_sub_ver");
-				$usr_ver="$get_pl_ver.$get_up_ver.$get_sub_ver";
+				$usr_ver_array = transfer_obd_ver_str_to_int($usr_ver);
 			}
 		}
-		// logd("get user version: $usr_ver");
-		$get_usr_ver = get_version_detail_by_ver($usr_ver);
+		logd("get usr version: $usr_ver_array[0] . $usr_ver_array[1] . $usr_ver_array[2] .$usr_ver_array[3]");
+		// **************** End of Get user version ********************* //
 
-		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] .$get_usr_ver[3]");
-
-		// **************** Get local list and sort ********************* //
+		// **************** Start Get local list and sort ********************* //
 		$ver_dir = sprintf("./version/%s/",$get_hgsoft_platform[0]);
 		$ver_list = dir_list($ver_dir);
 		$arrlength=count($ver_list);
 		sort($ver_list);
-		// **************** Get local list and sort ********************* //
+		// **************** End of Get local list and sort ********************* //
 
 
 		logd("get dir list :");
 		$ret = 0;
 		for ($i0=$arrlength-1; $i0 >= 0; $i0--)
 		{
-			$get_ver_info = substr( $ver_list[$i0],2);
-			// $get_ver_list = $ver_list[$i0];
+			$update_file_path = substr( $ver_list[$i0],2);
 			$local_ver_info = "";
-			$get_file_ext = strrchr($ver_list[$i0], ".");
+			$get_file_ext = strrchr($update_file_path, ".");
 			logd("get file ext: $get_file_ext");
 			if( strcmp($get_file_ext, ".md5") == 0)
 			{
+				logd("Not a correct update file!");
 				continue;
 			}
+
+			// **************** Start Get server version ********************* //
 			if( strlen($version_prefix) != 0 )
 			{
-				$get_ver_list = strip_version_str($ver_list[$i0],$get_hgsoft_platform[2],"");
-				$get_local_ver_info = strrchr($get_ver_list, $get_hgsoft_platform[3]);
-				$local_ver_info = substr( $get_local_ver_info,1);
+				// TODO
+				logd("for_ibx!!!!!!!!!!!!!!!!!!!!");
 			}
 			else
 			{
 				if( strcmp($get_hgsoft_platform[0], "obd") ==0 || strcmp($get_hgsoft_platform[0], "obd_app") ==0)
 				{
-					$get_ver_list = strip_version_str($ver_list[$i0],"-","");
-					$get_local_ver_info = strstr($get_ver_list,"JM-");
-					$local_ver_info_full=substr( $get_local_ver_info,strlen("JM-"));
-					$local_ver_info = substr($local_ver_info_full,0,4);
+					$server_ver = strip_version_str($update_file_path,"-","JM-");		//change ***HGOBD-APP-JM-0006-05<<-20161012.BIN>> to 0006-05
+					$server_ver_array = transfer_obd_ver_str_to_int($server_ver);
 
-					$get_local_pl_ver = intval(substr($local_ver_info_full,0,2));
-					$get_local_up_ver = intval(substr($local_ver_info_full,2,4));
-					$get_local_sub_ver = intval(substr($local_ver_info_full,5,7));
-					logd("--->$get_local_pl_ver --> $get_local_up_ver  --> $get_local_sub_ver");
-					$local_ver_info = "$get_local_pl_ver.$get_local_up_ver.$get_local_sub_ver";
 				}
 			}
-			logd(" -- get local update version --> $get_ver_list <----> $local_ver_info <--");
-			logd("--usr: $get_pl_ver.$get_up_ver.$get_sub_ver---local: $get_local_pl_ver.$get_local_up_ver.$get_local_sub_ver-----");
 
-
-			$local_ver = get_version_detail_by_ver($local_ver_info);
-			logd("local version detail $local_ver[0].$local_ver[1].$local_ver[2].$local_ver[3]");
-			logd("user version detail $get_usr_ver[0].$get_usr_ver[1].$get_usr_ver[2].$get_usr_ver[3]");
+			logd("server version detail $server_ver_array[0].$server_ver_array[1].$server_ver_array[2].$server_ver_array[3]");
+			logd("user version detail $usr_ver_array[0].$usr_ver_array[1].$usr_ver_array[2].$usr_ver_array[3]");
+			// **************** End of Get server version ********************* //
 
 			if(strcmp($get_hgsoft_platform[0],"obd") == 0 ||
-				strcmp($get_hgsoft_platform[0],"obd_app") == 0
-			)
+				strcmp($get_hgsoft_platform[0],"obd_app") == 0 )
 			{
-				if($get_pl_ver != $get_local_pl_ver)
+				if($usr_ver_array[0] != $server_ver_array[0])
 				{
 					logd("platform version does not the same,skip...");
 					continue;
 				}
-				if( strcasecmp(strrchr($ver_list[$i0], $get_hgsoft_platform[2]), $get_hgsoft_platform[2]) == 0)
+				logd("Compareing --> $update_file_path<----> $get_hgsoft_platform[2] <--");
+				if( strcasecmp(strrchr( strtolower($update_file_path) ,  strtolower($get_hgsoft_platform[2])), $get_hgsoft_platform[2]) == 0)
 				{
-					$file_path = $get_ver_info;
-					$md5_file_path = sprintf("%s.md5",$get_ver_info);
-						if( file_exists( $md5_file_path ) )
-						{
-							$fp = fopen( $md5_file_path , 'r');
-							$get_md5_from_file = fread($fp, 1024);
-							logd("get md5 from file: $get_md5_from_file");
-							fclose($fp);
-							$file_md5 = $get_md5_from_file;
-						}
-						else
-						{
-							$file_md5 = md5_file($file_path);
-							$fp = fopen( $md5_file_path ,'w');
-							fwrite($fp,"$file_md5");
-							fclose($fp);
-						}
-					$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
-					$get_file_length = filesize($file_path);
-					$arrlen = count($local_ver);
-					$get_local_ver = "$local_ver[0]";
-					for( $i0 = 1; $i0 < $arrlen;$i0++)
-					{
-						$get_local_ver = "$get_local_ver.$local_ver[$i0]";
-					}
-
-					for($i1 = 0; $i1 < count($local_ver); $i1++)
-					{
-						logd("--------get_local:$local_ver[$i1]  --- $get_usr_ver[$i1] --->$i1<--");
-						if( $local_ver[$i1] > $get_usr_ver[$i1] )
-						{
-							logd("local_ver $local_ver[$i1]  > get_usr_ver $get_usr_ver[$i1] -->$i1<--");
-							// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
-							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
-							return;
-						}
-						/*
-						else if( $get_local_up_ver > $get_up_ver)
-						{
-							logd("$get_local_up_ver > $get_up_ver");
-							// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
-							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
-							return;
-						}
-						else if( $get_local_up_ver == $get_up_ver)
-						{
-							logd("get local up ver -> $get_local_up_ver == $get_up_ver");
-							if( $get_local_sub_ver >= $get_sub_ver)
-							{
-								logd("---local sub ver:$get_local_sub_ver, get $get_sub_ver");
-								// print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
-								print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$local_ver_info_full\"}}");
-								return;
-							}
-							else
-							{
-								logd("get local_sub_ver < get_sub_ver");
-								// logd("---sub ver:$get_local_sub_ver, get $get_sub_ver");
-							}
-						}
-						else if( $get_local_up_ver < $get_up_ver)
-						{
-							break;
-						}
-						 */
-						else if( $local_ver[$i1] < $get_usr_ver[$i1] )
-						{
-							break;
-						}
-					}
-					// print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$get_local_ver\"}}");
-					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
-					// print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"$local_ver_info_full\"}}");
-					return;
-				}
-				else
-				{
-					logd("Not specify file type!");
-					continue;
-				}
-			}
-			else
-			{
-				$file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
-					$local_ver[0], $local_ver[1], $local_ver[2], 
-					$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-				logd("=========>> get file path : $file_path");
-				$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
-					$local_ver[0], $local_ver[1], $local_ver[2], 
-					$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-				logd("look for file: $file_path .");
-				if (file_exists($file_path))
-				{
+					logd("Get server update file's ext name OK!");
+					$md5_file_path = sprintf("%s.md5",$update_file_path);
 					if( file_exists( $md5_file_path ) )
 					{
 						$fp = fopen( $md5_file_path , 'r');
@@ -525,25 +440,77 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 					}
 					else
 					{
-						$file_md5 = md5_file($file_path);
-						$fp = fopen( $md5_file_path ,'w');
-						fwrite($fp,"$file_md5");
-						fclose($fp);
+							$file_md5 = md5_file($update_file_path);
+							$fp = fopen( $md5_file_path ,'w');
+							fwrite($fp,"$file_md5");
+							fclose($fp);
 					}
-
-					$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
-					logd("$full_path exists");
-
-					$get_file_length = filesize($file_path);
-
-					$ret = 1;
-					break;
+					$full_path = sprintf("http://$get_serv/fota/%s",$update_file_path);
+					$get_file_length = filesize($update_file_path);
+					for($i1 = 0; $i1 < count($server_ver_array); $i1++)
+						{
+						logd("--------server ver[$i1]: $server_ver_array[$i1], user ver[$i1]: $usr_ver_array[$i1].");
+						if( $server_ver_array[$i1] > $usr_ver_array[$i1] )
+							{
+							logd("server ver[$i1]: $server_ver_array[$i1]  > user ver[$i1]: $usr_ver_array[$i1]");
+							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$server_ver\"}}");
+								return;
+							}
+						else if( $server_ver_array[$i1] < $usr_ver_array[$i1] )
+						{
+							break;
+						}
+						}
+					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+					return;
+				}
+			else
+				{
+					logd("Not specify file type!");
+					continue;
+			}
+			}
+			else
+			{
+				$update_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+				logd("=========>> get file path : $update_file_path");
+				$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+				logd("look for file: $update_file_path .");
+				if (file_exists($update_file_path))
+			{
+				if( file_exists( $md5_file_path ) )
+				{
+					$fp = fopen( $md5_file_path , 'r');
+					$get_md5_from_file = fread($fp, 1024);
+					logd("get md5 from file: $get_md5_from_file");
+					fclose($fp);
+					$file_md5 = $get_md5_from_file;
 				}
 				else
 				{
-					logd("can not get file: $full_path");
+						$file_md5 = md5_file($update_file_path);
+					$fp = fopen( $md5_file_path ,'w');
+					fwrite($fp,"$file_md5");
+					fclose($fp);
 				}
+
+					$full_path = sprintf("http://$get_serv/fota/%s",$update_file_path);
+				logd("$full_path exists");
+
+					$get_file_length = filesize($update_file_path);
+
+				$ret = 1;
+				break;
 			}
+			else
+			{
+				logd("can not get file: $full_path");
+			}
+		}
 		}
 
 		if( $ret == 1 )
@@ -564,9 +531,9 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 	}
 	else
 	{
-		logd("version is not $version_prefix !!");
+		logd("version is not correct !!! version prefix will be $version_prefix !!");
 		logd();
-		print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+		return -1;
 	}
 }
 
@@ -639,48 +606,47 @@ function update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 	logd(" Get current sn stat : ");
 	logd($sn_stat['sn']);
 
-$get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
+	$get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
 
 	if( strlen($sn_stat['sn']) == 0 )
-{
-	logd("----------------------------Insert info into DB------------------------------------------");
+	{
+		logd("----------------------------Insert info into DB sn=0------------------------------------------");
 		db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec);
 		logd("----------------------------Read Info from DB------------------------------------------");
 		$ret = show_data($mdb);
-	logd("----------------------------End of DB action------------------------------------------");
-		// $ret = read_fota_vister_info_db($db_server,$db_user,$db_pwd,1,$get_remoteip,$get_id);
-	// $forward_url = sprintf("http://10.173.235.228/fota/index.php?id=%s",$get_ver);
-	// header("Location: $forward_url");
-}
+		logd("----------------------------End of DB action------------------------------------------");
+		// $forward_url = sprintf("http://10.173.235.228/fota/index.php?id=%s",$get_ver);
+		// header("Location: $forward_url");
+	}
 	else
-{
+	{
 		logd("----------------------------Update DB info------------------------------------------");
 		$sql = sprintf(" UPDATE `fota` SET `timestamp`=now(),`version`=\"%s\",`fp`=\"%s\",`remoteip`=\"%s\" WHERE `sn`=\"%s\" ",$get_ver,$get_id, $get_remoteip_dec,$get_sn);
 		mysql_query($sql, $mdb);
 		logd("----------------------------Read Info from DB------------------------------------------");
 		$ret = show_data($mdb);
 		logd("----------------------------End of DB action------------------------------------------");
-}
-// $ver_pos = stripos($get_ver,"-")
+	}
+	// $ver_pos = stripos($get_ver,"-")
 
-$version_prefix = "HGSoft-v";
-$version_offset = 0;
+	$version_prefix = "HGSoft-v";
+	$version_offset = 0;
 
-$ret = substr_compare($get_ver,$version_prefix , $version_offset ,strlen($version_prefix));
-if ( $ret == 0 )
-{
-	$usr_ver_info = strrchr($get_ver,'v');
-	$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
-	// logd("get user version: $usr_ver");
+	$ret = substr_compare($get_ver,$version_prefix , $version_offset ,strlen($version_prefix));
+	if ( $ret == 0 )
+	{
+		$usr_ver_info = strrchr($get_ver,'v');
+		$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
+		// logd("get user version: $usr_ver");
 
-	$get_usr_ver = get_version_detail($usr_ver);
-	logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] ");
+		$get_usr_ver = get_version_detail($usr_ver);
+		logd("get usr version: $get_usr_ver[0] . $get_usr_ver[1] . $get_usr_ver[2] ");
 
-	// **************** Get local list and sort ********************* //
+		// **************** Get local list and sort ********************* //
 		$ver_list = dir_list('./version/ibx/');
-	$arrlength=count($ver_list);
-	sort($ver_list);
-	// **************** Get local list and sort ********************* //
+		$arrlength=count($ver_list);
+		sort($ver_list);
+		// **************** Get local list and sort ********************* //
 
 		// **************** Check if sn is in update list ********************* //
 		// select_database('fota',$mdb);
@@ -705,92 +671,92 @@ if ( $ret == 0 )
 		// select_database('fota',$mdb);
 		// **************** End Check if sn is in update list ********************* //
 
-	logd("get dir list :");
-	$ret = 0;
-	for ($i0=$arrlength-1; $i0 >= 0; $i0--)
-	{
+		logd("get dir list :");
+		$ret = 0;
+		for ($i0=$arrlength-1; $i0 >= 0; $i0--)
+		{
 			$get_file_ext = strrchr($ver_list[$i0], ".");
 			logd("get file ext: $get_file_ext");
 			if( strcmp($get_file_ext, ".md5") == 0)
 			{
 				continue;
 			}
-		$get_local_ver_info = strrchr($ver_list[$i0], 'v');
-		$local_ver_info = substr( $get_local_ver_info,1);
-		logd(" -- get local version --> $ver_list[$i0] <----> $local_ver_info <--");
+			$get_local_ver_info = strrchr($ver_list[$i0], 'v');
+			$local_ver_info = substr( $get_local_ver_info,1);
+			logd(" -- get local version --> $ver_list[$i0] <----> $local_ver_info <--");
 
 
-		$local_ver = get_version_detail($local_ver_info);
-		/*
-		if( $local_ver[0] > $get_usr_ver[0] )
-		{
-			$get_usr_ver = $local_ver;
-		}
-		else if( $local_ver[0] == $get_usr_ver[0] )
-		{
-			if( $local_ver[1] > $get_usr_ver[1] )
+			$local_ver = get_version_detail($local_ver_info);
+			/*
+			if( $local_ver[0] > $get_usr_ver[0] )
 			{
 				$get_usr_ver = $local_ver;
 			}
-			else if( $local_ver[1] == $get_usr_ver[1] )
+			else if( $local_ver[0] == $get_usr_ver[0] )
 			{
-				if( $local_ver[2] > $get_usr_ver[2] )
+				if( $local_ver[1] > $get_usr_ver[1] )
 				{
 					$get_usr_ver = $local_ver;
 				}
+				else if( $local_ver[1] == $get_usr_ver[1] )
+				{
+					if( $local_ver[2] > $get_usr_ver[2] )
+					{
+						$get_usr_ver = $local_ver;
+					}
+				}
 			}
-		}
-		*/
+			*/
 			$file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
-			$local_ver[0], $local_ver[1], $local_ver[2], 
-			$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 			$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
-			$local_ver[0], $local_ver[1], $local_ver[2], 
-			$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
-		logd("look for file: $file_path .");
-		if (file_exists($file_path))
-		{
-			if( file_exists( $md5_file_path ) )
+				$local_ver[0], $local_ver[1], $local_ver[2], 
+				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+			logd("look for file: $file_path .");
+			if (file_exists($file_path))
 			{
-				$fp = fopen( $md5_file_path , 'r');
-				$get_md5_from_file = fread($fp, 1024);
-				logd("get md5 from file: $get_md5_from_file");
-				fclose($fp);
-				$file_md5 = $get_md5_from_file;
+				if( file_exists( $md5_file_path ) )
+				{
+					$fp = fopen( $md5_file_path , 'r');
+					$get_md5_from_file = fread($fp, 1024);
+					logd("get md5 from file: $get_md5_from_file");
+					fclose($fp);
+					$file_md5 = $get_md5_from_file;
+				}
+				else
+				{
+					$file_md5 = md5_file($file_path);
+					$fp = fopen( $md5_file_path ,'w');
+					fwrite($fp,"$file_md5");
+					fclose($fp);
+				}
+
+				$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
+				logd("$full_path exists");
+
+				$get_file_length = filesize($file_path);
+
+				$ret = 1;
+				break;
 			}
 			else
 			{
-				$file_md5 = md5_file($file_path);
-				$fp = fopen( $md5_file_path ,'w');
-				fwrite($fp,"$file_md5");
-				fclose($fp);
+				logd("can not get file: $full_path");
 			}
+		}
 
-			$full_path = sprintf("http://$get_serv/fota/%s",$file_path);
-			logd("$full_path exists");
-
-			$get_file_length = filesize($file_path);
-
-			$ret = 1;
-			break;
+		if( $ret == 1 )
+		{
+			print("{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}");
+			logd();
+			logd("get update file!");
+			return $ret;
 		}
 		else
 		{
-			logd("can not get file: $full_path");
-		}
-	}
-
-	if( $ret == 1 )
-	{
-		print("{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\"}");
-		logd();
-		logd("get update file!");
-			return $ret;
-	}
-	else
-	{
-		logd("Error!");
-		print("null");
+			logd("Error!");
+			print("null");
 			logd("");
 			return $ret;
 		}
@@ -865,19 +831,18 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	{
 		logd("go to ibx project update....$version_prefix_check<--");
 		update_project_ibx ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id, $get_sn, $get_ver );
-}
-else
-{
+	}
+	else
+	{
 		logd("go to obd project update....");
 		if( strcmp($get_hgsoft_platform[0], "obd") ==0 ||
 			strcmp($get_hgsoft_platform[0], "obd_app") ==0)
 		{
 			if(strlen($get_ver) < 4)
 				return -1;
-			$get_pl_ver = intval(substr($get_ver,0,2));
-			$get_up_ver = intval(substr($get_ver,2,4));
-			logd("---> get version $get_ver ---> $get_pl_ver ---> $get_up_ver");
-			switch ($get_pl_ver)
+			$usr_ver_array = transfer_obd_ver_str_to_int($get_ver);
+			logd("---> get version $get_ver ---> $usr_ver_array[0].$usr_ver_array[1].$usr_ver_array[2].$usr_ver_array[3]");
+			switch ($usr_ver_array[0])
 			{
 				case 1:		//obd_simcom_version
 					$get_hgsoft_platform[5] = "simcom";
@@ -904,10 +869,10 @@ else
 
 	if( $get_hgsoft_platform[1] == 1)
 	{
-	logd();
+		logd();
 		logd("----------------------------Disconnect to DB------------------------------------------");
 		disconnect_from_mysql_server($mdb);
-}
+	}
 
 }
 

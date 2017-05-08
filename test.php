@@ -337,7 +337,7 @@ function get_platform_info($get_platform, $get_ver)
 
 function strip_version_str($ver_str,$end_str,$start_str)
 {
-	// change ***HGOBD-APP-JM-0006-05<<-20161012.BIN>> to ***HGOBD-APP-JM-0006-05
+	// change ***HGOBD-APP-JM-0006-05<<-20161012.BIN>> to 0006-05
 	$ver_info = $ver_str;
 	if(strlen($end_str) != 0)
 	{
@@ -381,7 +381,6 @@ function transfer_obd_ver_str_to_int($ver_info)	// 1234xxxx-56 || 1234xxxx ==> 1
 
 function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 {
-	// version info -> "ibx",1,".zip","v","HGSoft-v",""
 	// version info -> "obd",0,".BIN","","",""
 	$version_prefix = $get_hgsoft_platform[4];
 	$ret = strstr($get_ver,$version_prefix);
@@ -490,8 +489,6 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 						}
 					$full_path = sprintf("http://$get_serv/fota/%s",$update_file_path);
 					$get_file_length = filesize($update_file_path);
-					$arrlen = count($server_ver_array);
-
 					for($i1 = 0; $i1 < count($server_ver_array); $i1++)
 					{
 						logd("--------server ver[$i1]: $server_ver_array[$i1], user ver[$i1]: $usr_ver_array[$i1].");
