@@ -221,7 +221,7 @@ function strip_version_str($ver_str,$end_str,$start_str)
 
 function transfer_obd_ver_str_to_int($ver_info)	// 1234xxxx-56 || 1234xxxx ==> 12 34 56
 {
-	$ver_int_array[0] = -1;
+	$ver_int_array[0] = 0;
 	$ver_int_array[1] = 0;
 	$ver_int_array[2] = 0;
 	$ver_int_array[3] = 0;
@@ -230,10 +230,25 @@ function transfer_obd_ver_str_to_int($ver_info)	// 1234xxxx-56 || 1234xxxx ==> 1
 	if(strlen($ver_info) < 4)
 		return $ver_int_array;
 
-	$ver_int_array[0] = intval(substr($ver_info,0,2));	//[0] [1]
-	$ver_int_array[1] = intval(substr($ver_info,2,4));	// [2] [3]
+	$ver_array[0]=substr($ver_info,0,2);
+	$ver_array[1]=substr($ver_info,2,4);
 	$get_sub_ver_tmp = strchr($ver_info,"-");
-	$ver_int_array[2] = intval(substr($get_sub_ver_tmp,1));
+	$ver_array[2] = substr($get_sub_ver_tmp,1);
+
+	for ($i0=0; $i0 <= 3; $i0++)
+	{
+		if(preg_match("/[^\d-., ]/",$ver_array[$i0]))
+		{
+			logd("Not numbers!!!");
+			$ver_int_array[0] = -1;
+			return $ver_int_array;
+		}
+	}
+
+
+	$ver_int_array[0] = intval($ver_array[0]);	//[0] [1]
+	$ver_int_array[1] = intval($ver_array[1]);	// [2] [3]
+	$ver_int_array[2] = intval($ver_array[2]);
 	logd("---> get usr version detail $ver_info ---> $ver_int_array[0] ---> $ver_int_array[1] --> $ver_int_array[2] --> $ver_int_array[3]");
 	return $ver_int_array;
 }
@@ -271,6 +286,8 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 					return -1;
 				}
 				$usr_ver_array = transfer_obd_ver_str_to_int($usr_ver);
+				if($usr_ver_array[0] == -1 )
+					return -1;
 			}
 		}
 		logd("get usr version: $usr_ver_array[0] . $usr_ver_array[1] . $usr_ver_array[2] .$usr_ver_array[3]");
