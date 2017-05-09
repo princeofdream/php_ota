@@ -785,7 +785,11 @@ date_default_timezone_set('Asia/Shanghai');
 $base_info = array($get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver );
 
 
-update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver);
+$main_ret=update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver);
+if($main_ret == -1)
+{
+	print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+}
 // update_server_main( $base_info );
 
 ?>
