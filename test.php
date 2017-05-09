@@ -1,188 +1,22 @@
+<?PHP
+require_once('basepage.php');
+get_html_main_header();
+?>
 
-<html>
-
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta http-equiv="Content-Language" content="zh-CN" />
-<title>HGSoft X server</title>
-</head>
-
-<style type="text/css">
-body {
-	border:none;
-	margin:0px auto;
-	padding:0px auto;
-    background-color: rgb(97, 103, 180);
-	text-align: left;
-	width:70%;
-	float:left;
-	margin-left:15%;
-	margin-right;15%;
-}
-.cont_left{
-position:relative;
-left:50px;
-font-size:18px;
-font-weight:bold;
-}
-.links {color: #009900}
-div#container{/*width:720px;*/max-height:1920}
-div#header {background-color:#99bbbb;}
-div#menu {background-color:#ffff99;height:500;width:20%;float:left;}
-div#content {background-color:#EEEEEE;height:500;width:80%;float:left;}
-div#footer {background-color:#99bbbb;clear:both;text-align:center;}
-h1 {margin-bottom:0;}
-h2 {margin-bottom:0;font-size:18px;}
-ul {margin:0;}
-li {list-style:none;}
-</style>
-
-<body>
-
-
-</br>
 <?php
 // By JamesL 20170508 version 1.0.0
-//echo $_POST["m_ver"];
-//echo $_POST["m_ot_time"];
+session_start();
+
+require_once("debug_util.php");
+require_once("db.php");
+require("platform.php");
+
 
 $db_mdb;
 
-function get_debug_info()
-{
-	$DEBUG=1;
-	// $DEBUG=0;
+//echo $_POST["m_ver"];
+//echo $_POST["m_ot_time"];
 
-	return $DEBUG;
-}
-
-function logd($str)
-{
-    $DEBUG=get_debug_info();
-    if($DEBUG === 1){
-		$current_tm = date('H:i:s');
-        echo "[ DEBUG $current_tm ]  $str<br />";
-    }else{
-    }
-}
-
-function logs($str)
-{
-    $DEBUG=get_debug_info();
-    if($DEBUG === 1){
-		print($str);
-    }else{
-    }
-}
-
-function get_platform_info($get_platform, $get_ver)
-{
-	$hgsoft_platform= array
-		(
-			// project_name, with_db_support
-			// "ibx", 1 --> means project ibx, with db support
-			// platform, DB, file ext name, keyword, prefix
-			array("obd",0,".bin","","",""),
-			array("obd_app",0,".apk","","",""),
-			array("ibx",1,".zip","v","HGSoft-v",""),
-			// array("Volvo",22,18),
-			// array("BMW",15,13),
-			// array("Saab",5,2),
-			// array("Land Rover",17,15)
-		);
-
-	$get_hgsoft_platform[0] = "";
-	$get_hgsoft_platform[1] = 0;
-
-	$hgsoft_platform_arrlen=count($hgsoft_platform);
-	if( strlen ($get_platform) != 0 )
-	{
-		for ($i0=$hgsoft_platform_arrlen-1; $i0 >= 0; $i0--)
-		{
-			// $ret = substr_compare($get_platform, $hgsoft_platform[$i0] , 0 ,strlen($get_platform));
-			$ret = strcmp($get_platform, $hgsoft_platform[$i0][0]);
-			if($ret == 0)
-			{
-				$get_hgsoft_platform = $hgsoft_platform[$i0];
-				break;
-			}
-		}
-	}
-	$version_prefix = "HGSoft-v";
-	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
-	if( strlen ($get_hgsoft_platform[0]) == 0  && strlen($version_prefix_check) != 0 && $version_prefix_check == 0)
-	{
-		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
-		// $get_hgsoft_platform[0] = "ibx";
-		// $get_hgsoft_platform[1] = 1;
-		$get_hgsoft_platform = $hgsoft_platform[2];
-	}
-
-	return $get_hgsoft_platform;
-}
-
-
-function get_db_server()
-{
-	$db_server = "10.173.201.228:3306";
-	return $db_server;
-}
-
-function get_db_user()
-{
-	$db_user = "fota";
-	return $db_user;
-}
-function get_db_pwd()
-{
-	$db_pwd = "fota1@#";
-	return $db_pwd;
-}
-/*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/
-
-
-function connect_to_mysql_server($db_server,$db_user,$db_pwd)
-{
-    $result=0;
-	$db_mdb = mysql_connect($db_server,$db_user,$db_pwd);
-	if(!$db_mdb)
-	{
-		echo "connect db Fail!";
-	}
-	else
-	{
-		logd("connect sucess");
-	}
-	return $db_mdb;
-}
-
-function select_database($sel_db,$db_mdb)
-{
-	$result  = mysql_select_db($sel_db, $db_mdb);
-}
-
-function run_database_command($query)
-{
-    // $query = "SELECT cpuid FROM license_datasheet where cpuid='".$_GET['cpuid']."'";
-    $result = mysql_query($query);
-}
-
-function disconnect_from_mysql_server($db_mdb)
-{
-	mysql_close($db_mdb);
-}
-
-
-function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
-{
-	$ret = mysql_select_db("fota", $mdb);
-
-	$insert_str = sprintf("INSERT INTO `fota`(`timestamp`, `sn`, `version`, `fp`,`remoteip`) VALUES (now(),'%s','%s','%s','%s')",$get_sn,$get_ver,$get_id,$get_remoteip_dec);
-	$result = mysql_query($insert_str);
-	logd("------------>$insert_str<--<$ret:$result>--------");
-
-	return 1;
-}
 
 
 function show_data($mdb)
@@ -860,10 +694,6 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	logd("version key word : $get_hgsoft_platform[3]");
 	logd("version prefix : $get_hgsoft_platform[4]");
 
-	$db_server = get_db_server();
-	$db_user = get_db_user();
-	$db_pwd = get_db_pwd();
-	logd("DB server : $db_server");
 
 	if(strlen($get_hgsoft_platform[0]) == 0 )
 	{
@@ -874,6 +704,10 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	if( $get_hgsoft_platform[1] == 1)
 	{
 		logd("----------------------------Connect to DB------------------------------------------");
+		$db_server = get_db_server();
+		$db_user = get_db_user();
+		$db_pwd = get_db_pwd();
+		logd("DB server : $db_server");
 		$mdb = connect_to_mysql_server($db_server,$db_user,$db_pwd);
 		select_database('fota',$mdb);
 	}
@@ -954,7 +788,10 @@ $base_info = array($get_serv, $get_port, $get_remoteip, $get_platform, $get_id, 
 update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver);
 // update_server_main( $base_info );
 
-
 ?>
-</body>
-</html>
+
+<?PHP
+require_once('basepage.php');
+get_html_main_end();
+?>
+
