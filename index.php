@@ -3,24 +3,6 @@
 //echo $_POST["m_ver"];
 //echo $_POST["m_ot_time"];
 
-function get_db_server()
-{
-	$db_server = "10.173.201.228:3306";
-	return $db_server;
-}
-
-function get_db_user()
-{
-	$db_user = "fota";
-	return $db_user;
-}
-function get_db_pwd()
-{
-	$db_pwd = "fota1@#";
-	return $db_pwd;
-}
-/*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/
-
 $db_mdb;
 
 function get_debug_info()
@@ -50,6 +32,70 @@ function logs($str)
     }
 }
 
+function get_platform_info($get_platform, $get_ver)
+{
+	$hgsoft_platform= array
+		(
+			// project_name, with_db_support
+			// "ibx", 1 --> means project ibx, with db support
+			// platform, DB, file ext name, keyword, prefix
+			array("obd",0,".bin","","",""),
+			array("obd_app",0,".apk","","",""),
+			array("ibx",1,".zip","v","HGSoft-v",""),
+			// array("Volvo",22,18),
+			// array("BMW",15,13),
+			// array("Saab",5,2),
+			// array("Land Rover",17,15)
+		);
+
+	$get_hgsoft_platform[0] = "";
+	$get_hgsoft_platform[1] = 0;
+
+	$hgsoft_platform_arrlen=count($hgsoft_platform);
+	if( strlen ($get_platform) != 0 )
+	{
+		for ($i0=$hgsoft_platform_arrlen-1; $i0 >= 0; $i0--)
+		{
+			// $ret = substr_compare($get_platform, $hgsoft_platform[$i0] , 0 ,strlen($get_platform));
+			$ret = strcmp($get_platform, $hgsoft_platform[$i0][0]);
+			if($ret == 0)
+			{
+				$get_hgsoft_platform = $hgsoft_platform[$i0];
+				break;
+			}
+		}
+	}
+	$version_prefix = "HGSoft-v";
+	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
+	if( strlen ($get_hgsoft_platform[0]) == 0  && strlen($version_prefix_check) != 0 && $version_prefix_check == 0)
+	{
+		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
+		// $get_hgsoft_platform[0] = "ibx";
+		// $get_hgsoft_platform[1] = 1;
+		$get_hgsoft_platform = $hgsoft_platform[2];
+	}
+
+	return $get_hgsoft_platform;
+}
+
+
+function get_db_server()
+{
+	$db_server = "10.173.201.228:3306";
+	return $db_server;
+}
+
+function get_db_user()
+{
+	$db_user = "fota";
+	return $db_user;
+}
+function get_db_pwd()
+{
+	$db_pwd = "fota1@#";
+	return $db_pwd;
+}
+/*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/
 
 
 function connect_to_mysql_server($db_server,$db_user,$db_pwd)
@@ -187,6 +233,30 @@ function dir_list($path, $exts = '', $list = array())
 	return $list;
 }
 
+function get_file_md5_sum($file_path)
+{
+	$md5_file_path = sprintf("%s.md5",$file_path);
+	if( file_exists( $md5_file_path ) )
+	{
+		$fp = fopen( $md5_file_path , 'r');
+		$get_md5_from_file = fread($fp, 1024);
+		logd("get md5 from file: $get_md5_from_file");
+		fclose($fp);
+		$file_md5 = $get_md5_from_file;
+	}
+	else
+	{
+		$file_md5 = md5_file($file_path);
+		$fp = fopen( $md5_file_path ,'w');
+		fwrite($fp,"$file_md5");
+		fclose($fp);
+	}
+	return $file_md5;
+}
+
+function log_visit_info()
+{
+}
 
 function get_version_detail($ver_str)
 {
@@ -246,52 +316,6 @@ function get_version_detail_by_ver($ver_str)
 	// **************** END OF Transfer version to int ********************* //
 }
 
-
-function get_platform_info($get_platform, $get_ver)
-{
-	$hgsoft_platform= array
-		(
-			// project_name, with_db_support
-			// "ibx", 1 --> means project ibx, with db support
-			// platform, DB, file ext name, keyword, prefix
-			array("obd",0,".bin","","",""),
-			array("obd_app",0,".apk","","",""),
-			array("ibx",1,".zip","v","HGSoft-v",""),
-			// array("Volvo",22,18),
-			// array("BMW",15,13),
-			// array("Saab",5,2),
-			// array("Land Rover",17,15)
-		);
-
-	$get_hgsoft_platform[0] = "";
-	$get_hgsoft_platform[1] = 0;
-
-	$hgsoft_platform_arrlen=count($hgsoft_platform);
-	if( strlen ($get_platform) != 0 )
-	{
-		for ($i0=$hgsoft_platform_arrlen-1; $i0 >= 0; $i0--)
-		{
-			// $ret = substr_compare($get_platform, $hgsoft_platform[$i0] , 0 ,strlen($get_platform));
-			$ret = strcmp($get_platform, $hgsoft_platform[$i0][0]);
-			if($ret == 0)
-			{
-				$get_hgsoft_platform = $hgsoft_platform[$i0];
-				break;
-			}
-		}
-	}
-	$version_prefix = "HGSoft-v";
-	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
-	if( strlen ($get_hgsoft_platform[0]) == 0  && strlen($version_prefix_check) != 0 && $version_prefix_check == 0)
-	{
-		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
-		// $get_hgsoft_platform[0] = "ibx";
-		// $get_hgsoft_platform[1] = 1;
-		$get_hgsoft_platform = $hgsoft_platform[2];
-	}
-
-	return $get_hgsoft_platform;
-}
 
 function strip_version_str($ver_str,$end_str,$start_str)
 {
@@ -429,22 +453,8 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 				if( strcasecmp(strrchr( strtolower($update_file_path) ,  strtolower($get_hgsoft_platform[2])), $get_hgsoft_platform[2]) == 0)
 				{
 					logd("Get server update file's ext name OK!");
-					$md5_file_path = sprintf("%s.md5",$update_file_path);
-					if( file_exists( $md5_file_path ) )
-					{
-						$fp = fopen( $md5_file_path , 'r');
-						$get_md5_from_file = fread($fp, 1024);
-						logd("get md5 from file: $get_md5_from_file");
-						fclose($fp);
-						$file_md5 = $get_md5_from_file;
-					}
-					else
-					{
-							$file_md5 = md5_file($update_file_path);
-							$fp = fopen( $md5_file_path ,'w');
-							fwrite($fp,"$file_md5");
-							fclose($fp);
-					}
+					$file_md5 = get_file_md5_sum($update_file_path);
+
 					$full_path = sprintf("http://$get_serv/fota/%s",$update_file_path);
 					$get_file_length = filesize($update_file_path);
 					for($i1 = 0; $i1 < count($server_ver_array); $i1++)
@@ -782,9 +792,9 @@ function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver )
 // function update_server_main( $base_info)
 {
-	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<----------");
-	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=ibx&ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<----------");
-	logd("---- Usage ------->> http://10.173.201.222/fota/test.php?platform=obd&ver=0401 <<----------");
+	logd("-- Usage -->> http://10.173.201.222/fota/test.php?ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<--");
+	logd("-- Usage -->> http://10.173.201.222/fota/test.php?platform=ibx&ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<--");
+	logd("-- Usage -->> http://10.173.201.222/fota/test.php?platform=obd&ver=0401 <<--");
 	logd();
 	logd();
 	logd("Debug --------->");
