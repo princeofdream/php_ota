@@ -56,6 +56,4 @@ function get_html_main_end()
 }
 
 
-get_html_main_header();
-
 ?>

@@ -1,145 +1,22 @@
+<?PHP
+require_once('basepage.php');
+// get_html_main_header();
+?>
+
 <?php
 // By JamesL 20170508 version 1.0.0
-//echo $_POST["m_ver"];
-//echo $_POST["m_ot_time"];
+session_start();
+
+require_once("debug_util_null.php");
+require_once("db.php");
+require("platform.php");
+
 
 $db_mdb;
 
-function get_debug_info()
-{
-	// $DEBUG=1;
-	$DEBUG=0;
+//echo $_POST["m_ver"];
+//echo $_POST["m_ot_time"];
 
-	return $DEBUG;
-}
-
-function logd($str)
-{
-    $DEBUG=get_debug_info();
-    if($DEBUG === 1){
-		$current_tm = date('H:i:s');
-        echo "[ DEBUG $current_tm ]  $str<br />";
-    }else{
-    }
-}
-
-function logs($str)
-{
-    $DEBUG=get_debug_info();
-    if($DEBUG === 1){
-		print($str);
-    }else{
-    }
-}
-
-function get_platform_info($get_platform, $get_ver)
-{
-	$hgsoft_platform= array
-		(
-			// project_name, with_db_support
-			// "ibx", 1 --> means project ibx, with db support
-			// platform, DB, file ext name, keyword, prefix
-			array("obd",0,".bin","","",""),
-			array("obd_app",0,".apk","","",""),
-			array("ibx",1,".zip","v","HGSoft-v",""),
-			// array("Volvo",22,18),
-			// array("BMW",15,13),
-			// array("Saab",5,2),
-			// array("Land Rover",17,15)
-		);
-
-	$get_hgsoft_platform[0] = "";
-	$get_hgsoft_platform[1] = 0;
-
-	$hgsoft_platform_arrlen=count($hgsoft_platform);
-	if( strlen ($get_platform) != 0 )
-	{
-		for ($i0=$hgsoft_platform_arrlen-1; $i0 >= 0; $i0--)
-		{
-			// $ret = substr_compare($get_platform, $hgsoft_platform[$i0] , 0 ,strlen($get_platform));
-			$ret = strcmp($get_platform, $hgsoft_platform[$i0][0]);
-			if($ret == 0)
-			{
-				$get_hgsoft_platform = $hgsoft_platform[$i0];
-				break;
-			}
-		}
-	}
-	$version_prefix = "HGSoft-v";
-	$version_prefix_check = substr_compare($get_ver,$version_prefix , 0 ,strlen($version_prefix));
-	if( strlen ($get_hgsoft_platform[0]) == 0  && strlen($version_prefix_check) != 0 && $version_prefix_check == 0)
-	{
-		logd("----------------------------Project name Empty, set ibx by default------------------------------------------");
-		// $get_hgsoft_platform[0] = "ibx";
-		// $get_hgsoft_platform[1] = 1;
-		$get_hgsoft_platform = $hgsoft_platform[2];
-	}
-
-	return $get_hgsoft_platform;
-}
-
-
-function get_db_server()
-{
-	$db_server = "10.173.201.228:3306";
-	return $db_server;
-}
-
-function get_db_user()
-{
-	$db_user = "fota";
-	return $db_user;
-}
-function get_db_pwd()
-{
-	$db_pwd = "fota1@#";
-	return $db_pwd;
-}
-/*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/
-
-
-function connect_to_mysql_server($db_server,$db_user,$db_pwd)
-{
-    $result=0;
-	$db_mdb = mysql_connect($db_server,$db_user,$db_pwd);
-	if(!$db_mdb)
-	{
-		echo "connect db Fail!";
-	}
-	else
-	{
-		logd("connect sucess");
-	}
-	return $db_mdb;
-}
-
-function select_database($sel_db,$db_mdb)
-{
-	$result  = mysql_select_db($sel_db, $db_mdb);
-}
-
-function run_database_command($query)
-{
-    // $query = "SELECT cpuid FROM license_datasheet where cpuid='".$_GET['cpuid']."'";
-    $result = mysql_query($query);
-}
-
-function disconnect_from_mysql_server($db_mdb)
-{
-	mysql_close($db_mdb);
-}
-
-
-function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
-{
-	$ret = mysql_select_db("fota", $mdb);
-
-	$insert_str = sprintf("INSERT INTO `fota`(`timestamp`, `sn`, `version`, `fp`,`remoteip`) VALUES (now(),'%s','%s','%s','%s')",$get_sn,$get_ver,$get_id,$get_remoteip_dec);
-	$result = mysql_query($insert_str);
-	logd("------------>$insert_str<--<$ret:$result>--------");
-
-	return 1;
-}
 
 
 function show_data($mdb)
@@ -278,7 +155,7 @@ function get_version_detail($ver_str)
 
 function get_version_detail_by_ver($ver_str)
 {
-		// **************** START Transfer version to int ********************* //
+	// **************** START Transfer version to int ********************* //
 	// for version 1.23.456.789
 	logd("strip from: $ver_str");
 
@@ -324,8 +201,8 @@ function strip_version_str($ver_str,$end_str,$start_str)
 	if(strlen($end_str) != 0)
 	{
 		$get_pos = strrpos($ver_info,$end_str);
-	if($get_pos > 0)
-	{
+		if($get_pos > 0)
+		{
 			$ver_info = substr($ver_info, 0, $get_pos);
 		}
 	}
@@ -379,9 +256,9 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 		// **************** Start Get user version ********************* //
 		$usr_ver = "";
 		if( strlen($version_prefix) != 0 )
-	{
+		{
 			$usr_ver_info = strrchr($get_ver, $get_hgsoft_platform[3]);
-		$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
+			$usr_ver = substr( $usr_ver_info, 1, strlen($usr_ver_info));
 		}
 		else
 		{
@@ -458,69 +335,69 @@ function get_update_file($get_hgsoft_platform, $get_ver, $get_serv)
 					$full_path = sprintf("http://$get_serv/fota/%s",$update_file_path);
 					$get_file_length = filesize($update_file_path);
 					for($i1 = 0; $i1 < count($server_ver_array); $i1++)
-						{
+					{
 						logd("--------server ver[$i1]: $server_ver_array[$i1], user ver[$i1]: $usr_ver_array[$i1].");
 						if( $server_ver_array[$i1] > $usr_ver_array[$i1] )
-							{
+						{
 							logd("server ver[$i1]: $server_ver_array[$i1]  > user ver[$i1]: $usr_ver_array[$i1]");
 							print("{\"code\":\"200\",\"msg\":\"ok\",\"data\":{\"url\":\"$full_path\",\"md5\":\"$file_md5\",\"length\":\"$get_file_length\",\"version\":\"$server_ver\"}}");
-								return;
-							}
+							return;
+						}
 						else if( $server_ver_array[$i1] < $usr_ver_array[$i1] )
 						{
 							break;
 						}
-						}
+					}
 					print("{\"code\":\"300\",\"msg\":\"Your app is up to date!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
 					return;
 				}
-			else
+				else
 				{
 					logd("Not specify file type!");
 					continue;
-			}
+				}
 			}
 			else
 			{
 				$update_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/update.zip",
-				$local_ver[0], $local_ver[1], $local_ver[2], 
-				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+					$local_ver[0], $local_ver[1], $local_ver[2], 
+					$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 				logd("=========>> get file path : $update_file_path");
 				$md5_file_path = sprintf("version/ibx/v%d.%d.%d/from_v%d.%d.%d/md5.txt",
-				$local_ver[0], $local_ver[1], $local_ver[2], 
-				$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
+					$local_ver[0], $local_ver[1], $local_ver[2], 
+					$get_usr_ver[0], $get_usr_ver[1], $get_usr_ver[2]	);
 				logd("look for file: $update_file_path .");
 				if (file_exists($update_file_path))
-			{
-				if( file_exists( $md5_file_path ) )
 				{
-					$fp = fopen( $md5_file_path , 'r');
-					$get_md5_from_file = fread($fp, 1024);
-					logd("get md5 from file: $get_md5_from_file");
-					fclose($fp);
-					$file_md5 = $get_md5_from_file;
-				}
-				else
-				{
+					if( file_exists( $md5_file_path ) )
+					{
+						$fp = fopen( $md5_file_path , 'r');
+						$get_md5_from_file = fread($fp, 1024);
+						logd("get md5 from file: $get_md5_from_file");
+						fclose($fp);
+						$file_md5 = $get_md5_from_file;
+					}
+					else
+					{
 						$file_md5 = md5_file($update_file_path);
-					$fp = fopen( $md5_file_path ,'w');
-					fwrite($fp,"$file_md5");
-					fclose($fp);
-				}
+						$fp = fopen( $md5_file_path ,'w');
+						fwrite($fp,"$file_md5");
+						fclose($fp);
+					}
 
 					$full_path = sprintf("http://$get_serv/fota/%s",$update_file_path);
-				logd("$full_path exists");
+					logd("$full_path exists");
 
 					$get_file_length = filesize($update_file_path);
 
-				$ret = 1;
-				break;
+					$ret = 1;
+					break;
+				}
+				else
+				{
+					logd("can not get file: $full_path");
+				}
 			}
-			else
-			{
-				logd("can not get file: $full_path");
-			}
-		}
 		}
 
 		if( $ret == 1 )
@@ -817,10 +694,6 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	logd("version key word : $get_hgsoft_platform[3]");
 	logd("version prefix : $get_hgsoft_platform[4]");
 
-	$db_server = get_db_server();
-	$db_user = get_db_user();
-	$db_pwd = get_db_pwd();
-	logd("DB server : $db_server");
 
 	if(strlen($get_hgsoft_platform[0]) == 0 )
 	{
@@ -831,6 +704,10 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform,
 	if( $get_hgsoft_platform[1] == 1)
 	{
 		logd("----------------------------Connect to DB------------------------------------------");
+		$db_server = get_db_server();
+		$db_user = get_db_user();
+		$db_pwd = get_db_pwd();
+		logd("DB server : $db_server");
 		$mdb = connect_to_mysql_server($db_server,$db_user,$db_pwd);
 		select_database('fota',$mdb);
 	}
@@ -911,5 +788,10 @@ $base_info = array($get_serv, $get_port, $get_remoteip, $get_platform, $get_id, 
 update_server_main( $get_serv, $get_port, $get_remoteip, $get_platform, $get_id, $get_sn, $get_ver);
 // update_server_main( $base_info );
 
-
 ?>
+
+<?PHP
+require_once('basepage.php');
+// get_html_main_end();
+?>
+
