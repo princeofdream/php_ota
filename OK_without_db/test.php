@@ -51,7 +51,7 @@ li {list-style:none;}
 //echo $_POST["m_ot_time"];
 
 
-$db_server = "10.173.201.228";
+$db_server = "10.173.235.228";
 $db_user = "fota";
 $db_pwd = "fota1@#";
 /*mysql_connect(server,user,pwd,newlink(optional),clientflag(optional));*/

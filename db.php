@@ -1,6 +1,6 @@
 <?PHP
 /*
-$host = "10.173.201.228:3306";
+$host = "10.173.235.228:3306";
 $user = "fota";
 $password="fota1@#";
 $databasename = "fota";
@@ -27,7 +27,7 @@ function connect_database() {
 
 function get_db_server()
 {
-	$db_server = "10.173.201.228:3306";
+	$db_server = "10.173.235.228:3306";
 	return $db_server;
 }
 
