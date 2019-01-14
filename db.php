@@ -90,11 +90,11 @@ function db_insert($mdb,$get_ver,$get_id,$get_sn,$get_remoteip_dec)
 	return 1;
 }
 
-function perseus_db_insert($mdb,$get_idx,$get_sn,$get_vendor,$get_area,$get_timestamp)
+function perseus_db_insert($mdb,$get_idx,$get_sn,$get_vendor,$get_area,$get_timestamp, $get_size)
 {
 	$ret = mysqli_select_db( $mdb, "perseus");
 
-	$insert_str = sprintf("INSERT INTO `perseus_tire_base`(`idx`, `sn`, `vendor`, `area`,`timestamp`) VALUES ('%d','%s','%s','%s',now())",$get_idx,$get_sn,$get_vendor,$get_area);
+	$insert_str = sprintf("INSERT INTO `perseus_tire_base`(`idx`, `sn`, `vendor`, `area`,`timestamp`, `size`) VALUES ('%d','%s','%s','%s',now(),'%s')",$get_idx,$get_sn,$get_vendor,$get_area, $get_size);
 	$result = mysqli_query($mdb, $insert_str);
 	logd("------------>$insert_str<--<$ret:$result>--------");
 	if(!$result)
