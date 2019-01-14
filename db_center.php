@@ -14,16 +14,6 @@ if(!isset($_POST['submit']) && !isset($_POST['submit_del']))
 
 
 
-function logd($str)
-{
-    $DEBUG=0;
-    if($DEBUG === 1){
-		$current_tm = date('H:i:s');
-        echo "[ DEBUG $current_tm ]  $str<br />";
-    }else{
-    }
-}
-
 function db_del($get_sec_num,$get_sec_stat,$get_sec_min,$get_sec_max)
 {
 	logd("DB_DEL --> get sec num: $get_sec_num");

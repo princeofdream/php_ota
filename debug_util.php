@@ -1,16 +1,24 @@
 
 <?PHP
+
+$DEBUG=1;
+
 function get_debug_info()
 {
-	$DEBUG=1;
-	// $DEBUG=0;
-
+	// $DEBUG=1;
+	$DEBUG=0;
 	return $DEBUG;
+}
+
+function set_debug_info($value)
+{
+	$DEBUG=$value;
 }
 
 function logd($str)
 {
-    $DEBUG=get_debug_info();
+	$DEBUG=get_debug_info();
+	// $DEBUG=0;
     if($DEBUG === 1){
 		$current_tm = date('H:i:s');
         echo "[ DEBUG $current_tm ]  $str<br />";
@@ -20,7 +28,8 @@ function logd($str)
 
 function logs($str)
 {
-    $DEBUG=get_debug_info();
+    // $DEBUG=get_debug_info();
+	$DEBUG=1;
     if($DEBUG === 1){
 		print($str);
     }else{

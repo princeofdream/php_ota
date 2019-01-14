@@ -69,16 +69,6 @@ function get_db_pwd()
 	return $db_pwd;
 }
 
-function logd($str)
-{
-    $DEBUG=0;
-    if($DEBUG === 1){
-		$current_tm = date('H:i:s');
-        echo "[ DEBUG $current_tm ]  $str<br />";
-    }else{
-    }
-}
-
 function show_data()
 {
 	/* show data */

@@ -1,169 +1,328 @@
-<html>
-
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta http-equiv="Content-Language" content="zh-CN" />
-<title>Nufront X server</title>
-</head>
-
-<style type="text/css">
-body {
-	border:none;
-	margin:0px auto;
-	padding:0px auto;
-    background-color: rgb(97, 103, 180);
-	text-align: center;
-	width:70%;
-	float:left;
-	margin-left:15%;
-	margin-right;15%;
-}
-.cont_left{
-position:relative;
-left:50px;
-font-size:18px;
-font-weight:bold;
-}
-.links {color: #009900}
-div#container{/*width:720px;*/max-height:1920}
-div#header {background-color:#99bbbb;}
-div#menu {background-color:#ffff99;height:500;width:20%;float:left;}
-div#content {background-color:#EEEEEE;height:500;width:80%;float:left;}
-div#footer {background-color:#99bbbb;clear:both;text-align:center;}
-h1 {margin-bottom:0;}
-h2 {margin-bottom:0;font-size:18px;}
-ul {margin:0;}
-li {list-style:none;}
-</style>
-
-<body>
-<div id="container" align=center>
-	<div id="header"align=center>
-		<h1>Nufront X Server</h1>
-	</div>
-
-	<div id=main_cont>
-		<div id="menu" align=center>
-<!--
-			<h2>Menu</h2>
-			<ul>
-			<li>HTML</li>
-			<li>CSS</li>
-			<li>JavaScript</li>
-			</ul>
--->
-		</div><!--end Menu-->
-
-		<div id="content" align=left>
-			<p class=cont_left>Nufront Verify Server
-				<a href="./verify.php" >Start Verify!</a>
-			</p>
-			<p class=cont_left>UTF-8 测试</p>
-			<p class=cont_left>Nufront James Verify Server
-				<a href="./jvry.php?cpuid=1a2b3c4d&mac=00:11:22:33:44:55" >Start James Verify!</a>
-			</p>
-			<p class=cont_left>
-				<a href="/nginx_status" >Nufront X Server Status</a>
-			</p>
-			<p class=cont_left>
-				<a href="/OTA/tl7689/guardphone/versioninfo.xml" >Nufront Guard Phone update XML</a>
-			</p>
-<!--
-			<p class=cont_left>
-				<a href="http://172.16.34.35:8080/stat" >rtmp stat</a>
-			</p>
-			<p class=cont_left>
-				<a href="/test.html" >rtmp live test</a>
-			</p>
-			<p class=cont_left>
-				<a href="/test_vod.html" >rtmp vod test</a>
-			</p>
-			<p class=cont_left>
-				<a href="/test01.php" >test01</a>
-			</p>
--->
-			<p class=cont_left>
-				<a href="/git" >Git server</a>
-			</p>
-			<p class=cont_left>
-				<span>check local setting</span>
-			<p class=cont_left>
-				<a href="/tz.php" target="_blank" class="links">pin</a>
-				<a href="/phpmyadmin" target="_blank" class="links">phpmyadmin</a>
-			<p class=cont_left>
-				<a href="/p.php" target="_blank" class="links">phpinfo</a>
-				<a href="/phpPgAdmin" target="_blank" class="links">phpPgAdmin</a>
-			</p>
-			</p>
-			</p>
-			
-			<?php
-				$db_server = "localhost";
-				$db_user = "nufront";
-				$db_pwd = "nufront.com";
-				
-				function db_query($server,$user,$pwd)
-				{
-				  $result=0;
-					$mdb = mysql_connect($server,$user,$pwd);
-					if(!$mdb)
-					{
-						echo "connect db Fail!";
-						die('Could not connect: ' . mysql_error());
-					}
-					else
-					{
-					}
-					
-					mysql_select_db("nufront_license_management", $mdb);
-				
-				    $query = "SELECT board FROM license_datasheet";
-				    $t_result = mysql_query($query);
-				    while($row_result = mysql_fetch_array($t_result))
-				    {
-				        $result=1;
-				        echo($row_result['cpuid'] . " --> " . $row_result['wifi_mac']
-				                . " --> " . $row_result['board'] . " --> " . $row_result['platform']);
-				        echo("<br />");
-				    }
-					return $result;
-				}
-				
-/*
-				echo "<table class=cont_left border='2'>";
-				echo "<tr><td>";
-				echo "row	3, cell 1";
-				echo "</td><td>";
-				echo "row 3, cell 2";
-				echo "</td></tr>";
-				
-				echo "<tr><td>";
-				echo "row	4, cell 1";
-				echo "</td><td>";
-				echo "row 4, cell 2";
-				echo "</td></tr>";
-				
-				echo "</table>";
- */
-			?>
-			
-		</div><!--end content-->
-		<div id="footer">Copyright nufront.com By James Lee
-		</div>
-
 <?php
-	//Run as daemon process.
-	function run()
+// By JamesL 20170508 version 1.0.0
+session_start();
+
+require_once("debug_util.php");
+require_once("db.php");
+require("platform.php");
+
+
+$db_mdb;
+
+//echo $_POST["m_ver"];
+//echo $_POST["m_ot_time"];
+
+
+
+function show_data($mdb)
+{
+	$display = 1;
+
+	/* show data */
+	$sql = "SELECT * FROM `perseus_tire_base`";
+	// $sql = "SELECT * FROM `fota_machine`";
+	$result = mysqli_query($mdb, $sql);
+
+	if($display === 1)
 	{
-		//$cpuid = $_GET['cpuid'];
-		//echo "$cpuid\r\n";
+		logs( "<table border='1'>");
 	}
- 
-	//Entry point.
-	run();
+	$ret = "NULL";
+	while($row = mysqli_fetch_array($result))
+	{
+		if($display === 1)
+		{
+			logs("<tr><td>". $row['idx'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['vendor'] . " </td><td>" . $row['area'] . " </td><td>" . $row['timestamp'] . '</td></tr>');
+		}
+	}
+
+	// mysqli_close($mdb);
+	return $ret;
+}
+
+
+function get_file_md5_sum($file_path)
+{
+	$md5_file_path = sprintf("%s.md5",$file_path);
+	if( file_exists( $md5_file_path ) )
+	{
+		$fp = fopen( $md5_file_path , 'r');
+		$get_md5_from_file = fread($fp, 1024);
+		logd("get md5 from file: $get_md5_from_file");
+		fclose($fp);
+		$file_md5 = $get_md5_from_file;
+	}
+	else
+	{
+		$file_md5 = md5_file($file_path);
+		$fp = fopen( $md5_file_path ,'w');
+		fwrite($fp,"$file_md5");
+		fclose($fp);
+	}
+	return $file_md5;
+}
+
+function log_visit_info()
+{
+}
+
+function get_vendorsion_detail($ver_str)
+{
+		// **************** START Transfer version to int ********************* //
+		// logd("strip from: $ver_str");
+		$pos_01 = strpos($ver_str,'.');
+		$get_vendor_str_01 = substr($ver_str,0,$pos_01);
+		$ver_str_tmp_01 = substr($ver_str,$pos_01+1);
+
+		$pos_02 = strpos($ver_str_tmp_01,'.');
+		$get_vendor_str_02 = substr($ver_str_tmp_01,0,$pos_02);
+		$ver_str_tmp_02 = substr($ver_str_tmp_01,$pos_02+1);
+
+		$get_vendor_str_03 = $ver_str_tmp_02;
+		logd("--> pos_01: $pos_01 --> $get_vendor_str_01 . $get_vendor_str_02 . $get_vendor_str_03");
+		// **************** END OF Transfer version to int ********************* //
+		return array($get_vendor_str_01 , $get_vendor_str_02 , $get_vendor_str_03);
+}
+
+function get_vendorsion_detail_by_ver($ver_str)
+{
+	// **************** START Transfer version to int ********************* //
+	// for version 1.23.456.789
+	logd("strip from: $ver_str");
+
+	$ver_info = array(0,0,0,0);
+	$get_vendor_str = $ver_str;
+	$ver_num_count = 0;
+	for ($i0=0; $i0 <= 3; $i0++)
+	{
+		$ver_num_count ++;
+		$current_pos = strpos($get_vendor_str,'.');
+		$ver_info[$i0] = substr($get_vendor_str,0,$current_pos);
+
+		if($current_pos < 1)
+		{
+			$ver_info[$i0] = $get_vendor_str;
+			break;
+		}
+		$get_vendor_str = substr($get_vendor_str,$current_pos+1);
+	}
+	// logd("get ver -------> $ver_info[0] -- $ver_info[1] -- $ver_info[2] -- $ver_info[3]. count: $ver_num_count");
+	$ret_ver = $ver_info[0];
+	for($i0 = 0; $i0 < $ver_num_count; $i0++)
+	{
+	}
+	if($ver_num_count == 1)
+		return array( $ver_info[0]);
+	else if($ver_num_count == 2)
+		return array( $ver_info[0], $ver_info[1]);
+	else if($ver_num_count == 3)
+		return array( $ver_info[0], $ver_info[1],$ver_info[2]);
+	else if($ver_num_count == 4)
+		return array( $ver_info[0], $ver_info[1],$ver_info[2],$ver_info[3]);
+	else
+		return $ver_info;
+	// **************** END OF Transfer version to int ********************* //
+}
+
+
+function strip_version_str($ver_str,$end_str,$start_str)
+{
+	// change ***HGOBD-APP-JM-0006-05<<-20161012.BIN>> to 0006-05
+	$ver_info = $ver_str;
+	if(strlen($end_str) != 0)
+	{
+		$get_pos = strrpos($ver_info,$end_str);
+		if($get_pos > 0)
+		{
+			$ver_info = substr($ver_info, 0, $get_pos);
+		}
+	}
+
+	if(strlen($start_str) != 0 )
+	{
+		$get_pos = strrpos($ver_info,$start_str);
+		if($get_pos > 0)
+		{
+			$ver_info = substr($ver_info, $get_pos+strlen($start_str));
+		}
+	}
+
+	return $ver_info;
+}
+
+function transfer_obd_ver_str_to_int($ver_info)	// 1234xxxx-56 || 1234xxxx ==> 12 34 56
+{
+	$ver_int_array[0] = 0;
+	$ver_int_array[1] = 0;
+	$ver_int_array[2] = 0;
+	$ver_int_array[3] = 0;
+
+	// $ver_int_aray_len=count($ver_int_array);
+	if(strlen($ver_info) < 4)
+		return $ver_int_array;
+
+	$ver_array[0]=substr($ver_info,0,2);
+	$ver_array[1]=substr($ver_info,2,4);
+	$get_sub_ver_tmp = strchr($ver_info,"-");
+	$ver_array[2] = substr($get_sub_ver_tmp,1);
+
+	for ($i0=0; $i0 <= 3; $i0++)
+	{
+		if(preg_match("/[^\d-., ]/",$ver_array[$i0]))
+		{
+			logd("Not numbers!!!");
+			$ver_int_array[0] = -1;
+			return $ver_int_array;
+		}
+	}
+
+
+	$ver_int_array[0] = intval($ver_array[0]);	//[0] [1]
+	$ver_int_array[1] = intval($ver_array[1]);	// [2] [3]
+	$ver_int_array[2] = intval($ver_array[2]);
+	logd("---> get usr version detail $ver_info ---> $ver_int_array[0] ---> $ver_int_array[1] --> $ver_int_array[2] --> $ver_int_array[3]");
+	return $ver_int_array;
+}
+
+
+function update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp )
+{
+	$check_sn_str = sprintf("SELECT * FROM `perseus_tire_base` WHERE `SN`=\"%s\" ",$get_sn);
+	logd("sql: $check_sn_str");
+	$check_sn_stat = mysqli_query($mdb, $check_sn_str);
+	// logd( $check_sn_stat);
+	// if($check_sn_stat) {
+		$row = mysqli_fetch_array($check_sn_stat);
+		logd("get value: " . $row['sn']);
+	// }
+
+	if( strlen($row['sn']) == 0 )
+	{
+		logd("----------------------------Insert info into DB------------------------------------------");
+		$ret = perseus_db_insert($mdb,$get_idx,$get_sn,$get_vendor, $get_area, $get_timestamp);
+		logd("----------------------------Read Info from DB, pre stat: $ret------------------------------------------");
+		$ret = show_data($mdb);
+		logd("----------------------------End of DB action------------------------------------------");
+	}
+	else
+	{
+		logd("----------------------------Update DB info------------------------------------------");
+		$sql = sprintf(" UPDATE `perseus_tire_base` SET `idx`=\"%d\",`sn`=\"%s\", `vendor`=\"%s\", `area`=\"%s\", `timestamp` = now() WHERE `sn`=\"%s\" ",$get_idx, $get_sn,$get_vendor,$get_area,$get_sn);
+		mysqli_query($mdb, $sql);
+		logd("----------------------------Read Info from DB------------------------------------------");
+		$ret = show_data($mdb);
+		logd("----------------------------End of DB action------------------------------------------");
+	}
+
+}
+
+function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_hgsoft_platform )
+{
+	$get_stat = get_update_file($get_hgsoft_platform, $get_vendor,$get_serv);
+	if($get_stat == -1)
+	{
+		print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+	}
+}
+
+
+function update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_show )
+// function update_server_main( $base_info)
+{
+	logd("-- Usage -->> http://10.173.201.222/perseus/test.php?ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<--");
+	logd("-- Usage -->> http://10.173.201.222/perseus/test.php?platform=ibx&ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<--");
+	logd("-- Usage -->> http://10.173.201.222/perseus/test.php?platform=obd&ver=0401 <<--");
+	logd("");
+	logd("Debug --------->");
+
+	/* tranform ip to dec */
+	// $get_remoteip_dec = $get_remoteip[3] + $get_remoteip[2]*256 + $get_remoteip[1]*256*256 + $get_remoteip[0] *256*256*256;
+	$current_tm = date('H:i:s');
+
+	logd("serv : $get_serv : -port- : $get_port: -rtip- : $get_remoteip: -idx- : $get_idx: -sn- : $get_sn: --vd : $get_vendor: -ar- : $get_area: -ts- : $get_timestamp ");
+	logd("host  : $get_serv:$get_port");
+	// logd("remote ip :$get_remoteip($get_remoteip_dec)");
+	logd("idx  : $get_idx");
+	logd("sn  : $get_sn");
+	logd("vendor  : $get_vendor");
+	logd("area  : $get_area");
+	logd("timestamp  : $get_timestamp");
+	logd("time : $current_tm");
+
+	logd("----------------------------Connect to DB------------------------------------------");
+	$db_server = get_db_server();
+	$db_user = get_db_user();
+	$db_pwd = get_db_pwd();
+	logd("DB server : $db_server");
+	$mdb = connect_to_mysqli_server($db_server,$db_user,$db_pwd);
+	select_database('perseus',$mdb);
+
+	if ( strcmp( $get_show, "1") == 0 ) {
+		$check_sn_str = sprintf("SELECT * FROM `perseus_tire_base` WHERE `SN`=\"%s\" ",$get_sn);
+		logd("sql: $check_sn_str");
+		$check_sn_stat = mysqli_query($mdb, $check_sn_str);
+		$row = mysqli_fetch_array($check_sn_stat);
+		if (strlen($row['sn']) == 0)
+			logs("null");
+		else
+			logs("{index : {". $row['idx'] . "} , sn : {" . $row['sn'] . " }, vendor : { " . $row['vendor'] . " } , area: { " . $row['area'] . "} , timestamp : {" . $row['timestamp'] . '}}');
+	} else {
+		update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp );
+	}
+
+	// logd("----------------------------Disconnect to DB------------------------------------------");
+	// disconnect_from_mysqli_server($mdb);
+}
+
+function get_value($value)
+{
+	if (isset($_GET[$value])) {
+		$get_value = $_GET[$value];
+		return $get_value;
+	} elseif (isset($_POST[$value])) {
+		$get_value = $_POST[$value];
+		return $get_value;
+	} else {
+		return "";
+	}
+}
+
+
+/* Main */
+
+$get_serv = $_SERVER['HTTP_HOST'];
+$get_port = $_SERVER["SERVER_PORT"];
+$get_remoteip = $_SERVER["REMOTE_ADDR"];
+
+// $get_idx = $_GET['idx'];
+$get_idx = get_value("idx");
+$get_sn = get_value("sn");
+$get_vendor = get_value("vendor");
+$get_area = get_value("area");
+$get_timestamp = get_value("timestamp");
+
+$get_show = get_value("show");
+
+date_default_timezone_set('Asia/Shanghai');
+// $current_dt = date('Y-m-d');
+// $current_tm = date('H:i:s');
+
+
+$base_info = array($get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp );
+
+	logd("aidx  : $get_idx");
+	logd("asn  : $get_sn");
+	logd("avendor  : $get_vendor");
+	logd("aarea  : $get_area");
+	logd("atimestamp  : $get_timestamp");
+
+$main_ret=update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_show);
+if($main_ret == -1)
+{
+	print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
+}
+// update_server_main( $base_info );
+
 ?>
 
-	</div>
-</div>
-</body>
-</html>
+
