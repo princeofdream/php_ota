@@ -37,7 +37,7 @@ function show_data($mdb)
 	{
 		if($display === 1)
 		{
-			logs("<tr><td>". $row['idx'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['vendor'] . " </td><td>" . $row['area'] . " </td><td>" . $row['timestamp'] . '</td></tr>');
+			logs("<tr><td>". $row['idx'] . " </td><td>" . $row['sn'] . " </td><td>" . $row['vendor'] . " </td><td>" . $row['area'] . " </td><td>" . $row['timestamp'] . " </td><td>" . $row['size'].'</td></tr>');
 		}
 	}
 
@@ -190,7 +190,7 @@ function transfer_obd_ver_str_to_int($ver_info)	// 1234xxxx-56 || 1234xxxx ==> 1
 }
 
 
-function update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp )
+function update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_size )
 {
 	$check_sn_str = sprintf("SELECT * FROM `perseus_tire_base` WHERE `SN`=\"%s\" ",$get_sn);
 	logd("sql: $check_sn_str");
@@ -204,7 +204,7 @@ function update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_i
 	if( strlen($row['sn']) == 0 )
 	{
 		logd("----------------------------Insert info into DB------------------------------------------");
-		$ret = perseus_db_insert($mdb,$get_idx,$get_sn,$get_vendor, $get_area, $get_timestamp);
+		$ret = perseus_db_insert($mdb,$get_idx,$get_sn,$get_vendor, $get_area, $get_timestamp, $get_size);
 		logd("----------------------------Read Info from DB, pre stat: $ret------------------------------------------");
 		$ret = show_data($mdb);
 		logd("----------------------------End of DB action------------------------------------------");
@@ -212,7 +212,7 @@ function update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_i
 	else
 	{
 		logd("----------------------------Update DB info------------------------------------------");
-		$sql = sprintf(" UPDATE `perseus_tire_base` SET `idx`=\"%d\",`sn`=\"%s\", `vendor`=\"%s\", `area`=\"%s\", `timestamp` = now() WHERE `sn`=\"%s\" ",$get_idx, $get_sn,$get_vendor,$get_area,$get_sn);
+		$sql = sprintf(" UPDATE `perseus_tire_base` SET `idx`=\"%d\",`sn`=\"%s\", `vendor`=\"%s\", `area`=\"%s\", `timestamp` = now(), size=\"%s\" WHERE `sn`=\"%s\" ",$get_idx, $get_sn,$get_vendor,$get_area,$get_size, $get_sn);
 		mysqli_query($mdb, $sql);
 		logd("----------------------------Read Info from DB------------------------------------------");
 		$ret = show_data($mdb);
@@ -231,7 +231,7 @@ function update_project_obd ( $mdb, $get_serv, $get_port, $get_remoteip, $get_id
 }
 
 
-function update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_show )
+function update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_size, $get_show )
 // function update_server_main( $base_info)
 {
 	logd("-- Usage -->> http://10.173.201.222/perseus/test.php?ver=HGSoft-v1.0.0&sn=440011600000090&id=1482167729 <<--");
@@ -270,16 +270,27 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get
 		if (strlen($row['sn']) == 0)
 			logs("null");
 		else
-			logs("{index : {". $row['idx'] . "} , sn : {" . $row['sn'] . " }, vendor : { " . $row['vendor'] . " } , area: { " . $row['area'] . "} , timestamp : {" . $row['timestamp'] . '}}');
+			logs("{index : {". $row['idx'] . "} , sn : {" . $row['sn'] . " }, vendor : { " . $row['vendor'] . " } , area: { " . $row['area'] . "} , timestamp : {" . $row['timestamp'] . "}, size: {". $row['size'] . '}}');
 	} else {
-		update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp );
+		update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_size );
 	}
 
 	// logd("----------------------------Disconnect to DB------------------------------------------");
 	// disconnect_from_mysqli_server($mdb);
 }
 
-
+function get_value($value)
+{
+	if (isset($_GET[$value])) {
+		$get_value = $_GET[$value];
+		return $get_value;
+	} elseif (isset($_POST[$value])) {
+		$get_value = $_POST[$value];
+		return $get_value;
+	} else {
+		return "";
+	}
+}
 
 
 /* Main */
@@ -288,13 +299,15 @@ $get_serv = $_SERVER['HTTP_HOST'];
 $get_port = $_SERVER["SERVER_PORT"];
 $get_remoteip = $_SERVER["REMOTE_ADDR"];
 
-$get_idx = $_GET['idx'];
-$get_sn = $_GET['sn'];
-$get_vendor = $_GET['vendor'];
-$get_area = $_GET['area'];
-$get_timestamp = $_GET['timestamp'];
+// $get_idx = $_GET['idx'];
+$get_idx = get_value("idx");
+$get_sn = get_value("sn");
+$get_vendor = get_value("vendor");
+$get_area = get_value("area");
+$get_timestamp = get_value("timestamp");
+$get_size = get_value("size");
 
-$get_show = $_GET['show'];
+$get_show = get_value("show");
 
 date_default_timezone_set('Asia/Shanghai');
 // $current_dt = date('Y-m-d');
@@ -303,13 +316,14 @@ date_default_timezone_set('Asia/Shanghai');
 
 $base_info = array($get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp );
 
-	logd("aidx  : $get_idx");
-	logd("asn  : $get_sn");
-	logd("avendor  : $get_vendor");
-	logd("aarea  : $get_area");
-	logd("atimestamp  : $get_timestamp");
+	logd("idx  : $get_idx");
+	logd("sn  : $get_sn");
+	logd("vendor  : $get_vendor");
+	logd("area  : $get_area");
+	logd("timestamp  : $get_timestamp");
+	logd("size  : $get_size");
 
-$main_ret=update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_show);
+$main_ret=update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_size, $get_show);
 if($main_ret == -1)
 {
 	print("{\"code\":\"500\",\"msg\":\"Your version is incorrect!\",\"data\":{\"url\":\"\",\"md5\":\"\",\"length\":\"\",\"version\":\"\"}}");
