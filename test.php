@@ -270,7 +270,7 @@ function update_server_main( $get_serv, $get_port, $get_remoteip, $get_idx, $get
 		if (strlen($row['sn']) == 0)
 			logs("null");
 		else
-			logs("{index : {". $row['idx'] . "} , sn : {" . $row['sn'] . " }, vendor : { " . $row['vendor'] . " } , area: { " . $row['area'] . "} , timestamp : {" . $row['timestamp'] . "}, size: {". $row['size'] . '}}');
+			logs("{\"index\":\"". $row['idx'] . "\",\"sn\":\"" . $row['sn'] . "\",\"vendor\":\"" . $row['vendor'] . "\",\"area\":\"" . $row['area'] . "\",\"timestamp\":\"" . $row['timestamp'] . "\",\"size\":\"". $row['size'] . "\"}");
 	} else {
 		update_perseus_base ( $mdb, $get_serv, $get_port, $get_remoteip, $get_idx, $get_sn, $get_vendor, $get_area, $get_timestamp, $get_size );
 	}

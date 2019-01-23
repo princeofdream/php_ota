@@ -6,7 +6,7 @@ $DEBUG=1;
 function get_debug_info()
 {
 	// $DEBUG=1;
-	$DEBUG=0;
+	$DEBUG=1;
 	return $DEBUG;
 }
 
