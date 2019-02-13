@@ -86,33 +86,34 @@ function show_data($mdb)
 
 
 
-function update_perseus_base ( $mdb, $info)
+function check_perseus_passwd ( $mdb, $info)
 {
-	$check_sn_str = sprintf("SELECT * FROM `perseus_tire_base` WHERE `user`=\"%s\" ",get_user($info));
+	$check_sn_str = sprintf("SELECT * FROM `perseus_users` WHERE `user`=\"%s\" ",get_user($info));
 	logd("sql: $check_sn_str");
 	$check_sn_stat = mysqli_query($mdb, $check_sn_str);
-	// logd( $check_sn_stat);
-	// if($check_sn_stat) {
-		$row = mysqli_fetch_array($check_sn_stat);
-		logd("get value: " . $row['user']);
-	// }
-	if( strlen($row['sn']) == 0 )
+	$row = mysqli_fetch_array($check_sn_stat);
+
+	// decrypt to md5
+	$decrypt_passwd_str = sprintf("/home/james/Environment/web_base/bin/enc md5 %s", $row['passwd']);
+	exec($decrypt_passwd_str, $output);
+	$passwd_from_db=sprintf("%s", $output[0]);
+	logd("exec..... $passwd_from_db");
+	logd("get user from db: " . $row['user'] . " passwd: " . $passwd_from_db);
+	logd("get user from get: " . get_user($info). " passwd: " . get_passwd($info));
+
+	if( strcmp($row['user'], get_user($info)) == 0 && strcmp($passwd_from_db, get_passwd($info)) == 0)
 	{
 		logd("----------------------------Insert info into DB------------------------------------------");
-		$ret = perseus_db_insert($mdb,get_user($info),get_passwd($info),get_session($info), get_timestamp($info));
-		logd("----------------------------Read Info from DB, pre stat: $ret------------------------------------------");
-		$ret = show_data($mdb);
+		// $ret = show_data($mdb);
+		$encrypt_ret_str = sprintf("/home/james/Environment/web_base/bin/enc common_enc zok_%s",get_user($info));
+		exec($encrypt_ret_str, $output_ret);
+		$ret_str=sprintf("%s", $output_ret[0]);
+		logd("ret: $ret_str");
+		logd("time: " .  $_SERVER['REQUEST_TIME']);
+		print("{\"code\":\"100\",\"msg\":\"ok\",\"data\":{\"url\":\"\",\"ret\":\"$ret_str\",\"timestamp\":\"".$_SERVER['REQUEST_TIME']."\"}}");
 		logd("----------------------------End of DB action------------------------------------------");
-	}
-	else
-	{
-		logd("----------------------------Update DB info------------------------------------------");
-		$sql = sprintf(" UPDATE `perseus_tire_base` SET `idx`=\"%d\",`user`=\"%s\", `passwd`=\"%s\", `session`=\"%s\", `timestamp` = now(), source=\"%s\" WHERE `user`=\"%s\" ",
-			get_idx(idx),get_user($info), get_passwd($info),get_session($info),get_source($info), get_user($info));
-		mysqli_query($mdb, $sql);
-		logd("----------------------------Read Info from DB------------------------------------------");
-		$ret = show_data($mdb);
-		logd("----------------------------End of DB action------------------------------------------");
+	} else {
+		print("{\"code\":\"200\",\"msg\":\"fail\",\"data\":{\"url\":\"\",\"ret\":\"$ret_str\",\"timestamp\":\"".$_SERVER['REQUEST_TIME']."\"}}");
 	}
 }
 
@@ -152,8 +153,8 @@ function update_server_main( $info)
 			logs("null");
 		else
 			logs("{\"index\":\"". $row['idx'] . "\",\"user\":\"" . $row['user'] . "\",\"passwd\":\"" . $row['passwd'] . "\",\"timestamp\":\"" . $row['timestamp'] . "\",\"session\":\"" . $row['session'] . "\",\"source\":\"". $row['source'] . "\"}");
-	// } else {
-	//     update_perseus_base ( $mdb, $info);
+	} else {
+		check_perseus_passwd ( $mdb, $info);
 	}
 
 	logd("----------------------------Connect End------------------------------------------");
